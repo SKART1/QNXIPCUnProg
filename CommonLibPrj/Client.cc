@@ -10,9 +10,9 @@
 
 
 void *Client(void *arg) {
-	//IPCType iPCType = *((IPCType *) (arg));
-	int *b=(int *) arg;
-	IPCType iPCType = signalIPC;
+	IPCType iPCType = *((IPCType *) (arg));
+	//int *b=(int *) arg;
+	//IPCType iPCType = signalIPC;
 	std::cout<<"In client!"<<std::endl;
 	//FIFO
 	std::string path = INFO_FILE_NAME;
