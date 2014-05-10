@@ -8,7 +8,6 @@
 #ifndef HEADERS_H_
 #define HEADERS_H_
 
-#define INFO_FILE_NAME "info.info"
 
 
 typedef enum {
