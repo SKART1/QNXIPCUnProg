@@ -117,6 +117,7 @@ int inline preWork(AboutServerInfoStruct *aboutServerInfoStruct){
 		}
 		break;
 	case fifoIPC:
+		unlink(aboutServerInfoStruct->pathToFifo.c_str());
 		if ((mkfifo((aboutServerInfoStruct->pathToFifo).c_str(), S_IRWXU | S_IRWXG | S_IRWXO)) == -1) {
 			printf("[ERROR]: %d creating fifo file. That means: %s\n", errno,strerror(errno));
 			return -10;
@@ -185,7 +186,7 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 	std::cout << "[INFO]: Starting client if it necessary" << std::endl;
 #endif
 	int len;
-	len=0;
+	len=strlen(buffer_write);
 	int ret;
 	ret=0;
 
@@ -198,9 +199,7 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		break;
 
 	case pipeIPC:
-		len=0;
-		len=strlen(buffer_write);
-		ret=0;
+
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before read from pipe!\n");
 
 
@@ -229,6 +228,9 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		while (len>0 && (ret=read(aboutServerInfoStruct.fifoDes, buffer_read,len ))!= 0) {
 			if(ret==-1){
 				if(errno == EINTR){
+					continue;
+				}
+				if(errno == EAGAIN){
 					continue;
 				}
 				DEBUG_PRINT("ERROR","Internal read error");

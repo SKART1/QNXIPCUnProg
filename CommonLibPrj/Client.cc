@@ -43,7 +43,8 @@ void *Client(void *arg) {
 
 	//fprintf(filePointer, "BufferLength: %d\n", strlen(buffer_pipe_write));
 	//char buffer_pipe_write[] = "This us write in pipe";
-	char *buffer_write="This us write in pipe\0";
+	char buffer_write[]="This us write in pipe\0";
+	char *buffPointer=&(buffer_write[0]);
 	int len;
 	int written;
 
@@ -59,7 +60,7 @@ void *Client(void *arg) {
 	case pipeIPC:
 		len=strlen(buffer_write);
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: Before writing in pipe");
-		while(len!=0 && ((written=write(aboutServerInfoStruct.fileDes[1],buffer_write, len)) !=0)){
+		while(len!=0 && ((written=write(aboutServerInfoStruct.fileDes[1],buffPointer, len)) !=0)){
 			if(written==-1){
 				if(errno==EINTR){
 					continue;
@@ -68,20 +69,20 @@ void *Client(void *arg) {
 				break;
 			}
 			len-=written;
-			buffer_write+=written;
+			buffPointer=buffPointer+written;
 		}
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After writing in pipe");
 		close(aboutServerInfoStruct.fileDes[0]);
 		close(aboutServerInfoStruct.fileDes[1]);
 		break;
 	case fifoIPC:
+		std::cout<<aboutServerInfoStruct.pathToFifo.c_str()<<std::endl;
 		if(
 				(aboutServerInfoStruct.fifoDes=open((aboutServerInfoStruct.pathToFifo).c_str(), O_RDWR))<=0
 				){
 				perror("[ERROR]: Opening fifo file");
 				break;
 		}
-		while(1);
 		len=strlen(buffer_write);
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: Before writing in fifo");
 		while(len!=0 && ((written=write(aboutServerInfoStruct.fifoDes,buffer_write, len)) !=0)){
@@ -93,12 +94,9 @@ void *Client(void *arg) {
 				break;
 			}
 			len-=written;
-			buffer_write+=written;
+			buffPointer=buffPointer+written;
 		}
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After writing in fifo");
-		if(aboutServerInfoStruct.participantsTypeSelector==relatedProcess){
-			unlink(aboutServerInfoStruct.pathToFifo.c_str());
-		}
 		close(aboutServerInfoStruct.fifoDes);
 		break;
 	default:

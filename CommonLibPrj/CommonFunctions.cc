@@ -88,7 +88,7 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 			return -1;
 		}
 	}
-	if(!(optind<(argc-1))){
+	if(optind<(argc-1)){
 		aboutServerInfoStruct->pathToFileWithServerInfo=argv[optind];
 		aboutServerInfoStruct->pathToFifo=argv[optind+1];
 	}
@@ -104,5 +104,5 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 
 
 void correctFormatInfo(){
-	std::cout<<"[ERROR]: Programm usage format: server.out \n -S - signal \n -P - pipe \n -F - fifo \n -m - recievd-blocked messages \n -M - send-blocked messages  %FILEPATH_FOR_SERVERINFO_FILE%  %FILEPATH_FOR_FIFO.FIFO_FILE%"<< std::endl;
+	std::cout<<"[ERROR]: Programm usage format: server.out \n -S - signal \n -P - pipe \n -F - fifo \n -m - recievd-blocked messages \n -M - send-blocked messages  \n %FILEPATH_FOR_SERVERINFO_FILE%  %FILEPATH_FOR_FIFO.FIFO_FILE%"<< std::endl;
 }
