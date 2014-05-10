@@ -1,6 +1,7 @@
 #include "../CommonLibPrj/CommonFunctions.hpp"
 #include "../CommonLibPrj/Client.hpp"
 #include "../CommonLibPrj/AboutServerInfoStruct.hpp"
+#include "../CommonLibPrj/DebugInfoOut.hpp"
 
 #include "QNXIPCUnServer.hpp"
 
@@ -8,7 +9,9 @@
 
 extern int errno;
 
+#define DEBUG_PRINT_MY
 #define DEBUG_MY
+
 
 volatile int sig1 = 0;
 int sig2 = 0;
@@ -74,10 +77,9 @@ int inline infoToFile(AboutServerInfoStruct aboutServerInfoStruct , char *buffer
 	//For pipe
 	fprintf(filePointer, "PIPE[0]: %d\n", aboutServerInfoStruct.fileDes[0]);
 	fprintf(filePointer, "PIPE[1]: %d\n", aboutServerInfoStruct.fileDes[1]);
-	fprintf(filePointer, "BufferLength: %d\n", strlen(buffer_pipe_write));
 
 	//For fifo
-	fprintf(filePointer, "FIFO: %d\n", aboutServerInfoStruct.fifoDes);
+	fprintf(filePointer, "FIFO_PATH: %s\n", aboutServerInfoStruct.pathToFifo.c_str());
 
 	fclose(filePointer);
 	return 0;
@@ -141,7 +143,7 @@ int inline preWork(AboutServerInfoStruct *aboutServerInfoStruct){
 /*------------------------------------------------------------------------------------*/
 /*Creating thread/process
  * If we are separate server - just ignore this part*/
-int makeThreadProcess(char *argv, AboutServerInfoStruct aboutServerInfoStruct){
+int makeThreadProcess(char *argv[], AboutServerInfoStruct aboutServerInfoStruct){
 #ifdef DEBUG_MY
 	std::cout << "[INFO]: Starting client if it necessary" << std::endl;
 #endif
@@ -157,12 +159,16 @@ int makeThreadProcess(char *argv, AboutServerInfoStruct aboutServerInfoStruct){
 		break;
 	case relatedProcess:
 		if ((pidSon = fork()) == 0) {
-			if (execl("QNXIPCUnClient", argv) == -1) {
+			if (execv("QNXIPCUnClient", argv) == -1) {
 				printf("[ERROR]: %d error running client process. That means: %s\n", errno,	strerror(errno));
-				return -11;
 			}
 		};
 		break;
+	/*case independentProcessLocal:
+		if (execl("QNXIPCUnClient", argv) == -1) {
+			perror("[ERROR]: Execl");
+		}
+		break;*/
 	default:
 		break;
 	}
@@ -174,10 +180,15 @@ int makeThreadProcess(char *argv, AboutServerInfoStruct aboutServerInfoStruct){
 /*------------------------------------------------------------------------------------*/
 /*Waiting for something (Server part)
  * */
-int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_pipe_read, char *buffer_pipe_write){
+int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read, char *buffer_write){
 #ifdef DEBUG_MY
 	std::cout << "[INFO]: Starting client if it necessary" << std::endl;
 #endif
+	int len;
+	len=0;
+	int ret;
+	ret=0;
+
 	switch (aboutServerInfoStruct.IPCTypeSelector) {
 	case signalIPC:
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before pause. Waiting for signal!\n");
@@ -187,19 +198,51 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_pipe
 		break;
 
 	case pipeIPC:
+		len=0;
+		len=strlen(buffer_write);
+		ret=0;
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before read from pipe!\n");
-		while (read(aboutServerInfoStruct.fileDes[0], buffer_pipe_read, strlen(buffer_pipe_write))!= -1) {
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Read from pipe!\n");
+
+
+		while (len>0 && (ret=read(aboutServerInfoStruct.fileDes[0], buffer_read,len ))!= 0) {
+			if(ret==-1){
+				if(errno == EINTR){
+					continue;
+				}
+				DEBUG_PRINT("ERROR","Internal read error");
+				break;
+			}
+			if(ret!=0){
+				DEBUG_PRINT("INFO",buffer_read);
+				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Read from pipe!\n");
+				len-=ret;
+				buffer_read+=ret;
+			}
 		};
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After read from pipe!\n");
 		close(aboutServerInfoStruct.fileDes[0]);
+		close(aboutServerInfoStruct.fileDes[1]);
 		break;
 
 	case fifoIPC:
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before read from fifo!\n");
-		while (read(aboutServerInfoStruct.fifoDes, buffer_pipe_read, strlen(buffer_pipe_write))!= -1) {
-					TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Read from fifo!\n");
+		while (len>0 && (ret=read(aboutServerInfoStruct.fifoDes, buffer_read,len ))!= 0) {
+			if(ret==-1){
+				if(errno == EINTR){
+					continue;
+				}
+				DEBUG_PRINT("ERROR","Internal read error");
+				break;
+			}
+			if(ret!=0){
+				DEBUG_PRINT("INFO",buffer_read);
+				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Read from fifo!\n");
+				len-=ret;
+				buffer_read+=ret;
+			}
 		};
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After reading from fifo!\n");
+		close(aboutServerInfoStruct.fifoDes);
 		unlink(aboutServerInfoStruct.pathToFifo.c_str());
 		break;
 
@@ -250,7 +293,7 @@ void getInfgoAboutServer(AboutServerInfoStruct *aboutServerInfoStruct){
 
 
 
-	makeThreadProcess(argv[0], aboutServerInfoStruct);
+	makeThreadProcess(argv, aboutServerInfoStruct);
 
 	recievingPart(aboutServerInfoStruct, buffer_pipe_read,buffer_pipe_write);
 

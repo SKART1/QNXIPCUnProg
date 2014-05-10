@@ -35,6 +35,9 @@ int readFromFile(AboutServerInfoStruct *aboutServerInfoStructl){
 	fscanf(filePointer, "%s", buff);
 	fscanf(filePointer, "%d",&((*aboutServerInfoStructl).fileDes[1]));
 
+	fscanf(filePointer, "%s", buff);
+	fscanf(filePointer, "%s",&((*aboutServerInfoStructl).pathToFifo));
+
 	return 0;
 }
 
