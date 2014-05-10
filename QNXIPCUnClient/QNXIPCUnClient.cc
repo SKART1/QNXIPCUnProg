@@ -5,7 +5,9 @@
 #include "../CommonLibPrj/CommonFunctions.hpp"
 #include "../CommonLibPrj/Client.hpp"
 #include "../CommonLibPrj/Headers.hpp"
+#include "../CommonLibPrj/AboutServerInfoStruct.hpp"
 #include "QNXIPCUnClient.hpp"
+
 
 
 
@@ -39,19 +41,28 @@ int readFromFile(AboutServerInfoStruct *aboutServerInfoStructl){
 
 
 
+
 int main(int argc, char *argv[]) {
 	std::cout << "Welcome to the client!" << std::endl;
 
 	AboutServerInfoStruct aboutServerInfoStruct;
+
+
+
+
+
+
 	parseParametrsMy(argc, argv, &aboutServerInfoStruct);
 	/*END: !!!!!!!!!!!!!!!Processing input keys!!!!!!!!!!!!!!!*/
+
 
 
 	readFromFile(&aboutServerInfoStruct);
 	//aboutServerInfoStructl.IPCTypeSelector=IPCTypeSelector;
 
 
+
 	sleep(2);
-	Client(&IPCTypeSelector);
+	Client(&aboutServerInfoStruct);
 	return EXIT_SUCCESS;
 }

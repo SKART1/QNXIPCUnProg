@@ -1,5 +1,6 @@
 #include "../CommonLibPrj/CommonFunctions.hpp"
 #include "../CommonLibPrj/Client.hpp"
+#include "../CommonLibPrj/AboutServerInfoStruct.hpp"
 
 #include "QNXIPCUnServer.hpp"
 
@@ -53,30 +54,30 @@ static void sigusr2_hndlr(int signo) {
 /*------------------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------------------*/
-int inline infoToFile(pid_t pid, pid_t ppid, pthread_t tid, int *fileDes, char *buffer_pipe_write ){
+int inline infoToFile(AboutServerInfoStruct aboutServerInfoStruct , char *buffer_pipe_write ){
 	//Output file pointer
 	FILE *filePointer = NULL;
 
 #ifdef DEBUG_MY
 	std::cout << "[INFO]: Writing information to info.info" << std::endl;
 #endif
-	filePointer = fopen(INFO_FILE_NAME, "w");
+	filePointer = fopen((aboutServerInfoStruct.pathToFileWithServerInfo).c_str(), "w");
 	if (filePointer == NULL) {
 		printf("[ERROR]: %d can not create file with program information because of: %s\n",errno, strerror(errno));
 		return -1;
 	}
 
-	fprintf(filePointer, "PID: %d\n", pid);
-	fprintf(filePointer, "PPID: %d\n", ppid);
-	fprintf(filePointer, "TID: %d\n", tid);
+	fprintf(filePointer, "PID: %d\n", aboutServerInfoStruct.pid);
+	fprintf(filePointer, "PPID: %d\n", aboutServerInfoStruct.ppid);
+	fprintf(filePointer, "TID: %d\n", aboutServerInfoStruct.tid);
 
 	//For pipe
-	fprintf(filePointer, "PIPE[0]: %d\n", fileDes[0]);
-	fprintf(filePointer, "PIPE[1]: %d\n", fileDes[1]);
+	fprintf(filePointer, "PIPE[0]: %d\n", aboutServerInfoStruct.fileDes[0]);
+	fprintf(filePointer, "PIPE[1]: %d\n", aboutServerInfoStruct.fileDes[1]);
 	fprintf(filePointer, "BufferLength: %d\n", strlen(buffer_pipe_write));
 
 	//For fifo
-	fprintf(filePointer, "FIFO: %d\n", fileDes[0]);
+	fprintf(filePointer, "FIFO: %d\n", aboutServerInfoStruct.fifoDes);
 
 	fclose(filePointer);
 	return 0;
@@ -84,12 +85,12 @@ int inline infoToFile(pid_t pid, pid_t ppid, pthread_t tid, int *fileDes, char *
 /*------------------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------------------*/
-int inline preWork(IPCType IPCTypeSelector, int *fileDes, std::string path, int *fifoDes){
+int inline preWork(AboutServerInfoStruct *aboutServerInfoStruct){
 #ifdef DEBUG_MY
 	std::cout << "[INFO]: Preparing server part of IPC" << std::endl;
 #endif
 
-	switch (IPCTypeSelector) {
+	switch (aboutServerInfoStruct->IPCTypeSelector) {
 	case signalIPC:
 		//!POSIX
 		struct sigaction act;
@@ -108,17 +109,17 @@ int inline preWork(IPCType IPCTypeSelector, int *fileDes, std::string path, int 
 		}
 		break;
 	case pipeIPC:
-		if (pipe(fileDes) < 0) {
+		if (pipe(aboutServerInfoStruct->fileDes) < 0) {
 			printf("[ERROR]: %d creating pipe file. That means: %s\n", errno,strerror(errno));
 			return -9;
 		}
 		break;
 	case fifoIPC:
-		if ((mkfifo(path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO)) == -1) {
+		if ((mkfifo((aboutServerInfoStruct->pathToFifo).c_str(), S_IRWXU | S_IRWXG | S_IRWXO)) == -1) {
 			printf("[ERROR]: %d creating fifo file. That means: %s\n", errno,strerror(errno));
 			return -10;
 		}
-		if((*fifoDes=open(path.c_str(), O_RDWR))<=0){
+		if(((aboutServerInfoStruct->fifoDes)=open((aboutServerInfoStruct->pathToFifo).c_str(), O_RDWR))<=0){
 			printf("[ERROR]: %d opening fifo file. That means: %s\n", errno,strerror(errno));
 			return -11;
 		}
@@ -140,19 +141,19 @@ int inline preWork(IPCType IPCTypeSelector, int *fileDes, std::string path, int 
 /*------------------------------------------------------------------------------------*/
 /*Creating thread/process
  * If we are separate server - just ignore this part*/
-int makeThreadProcess(participantsType participantsTypeSelector,char *argv,IPCType IPCTypeSelector){
+int makeThreadProcess(char *argv, AboutServerInfoStruct aboutServerInfoStruct){
 #ifdef DEBUG_MY
 	std::cout << "[INFO]: Starting client if it necessary" << std::endl;
 #endif
 	pthread_t t1;
 	int pidSon;
 
-	switch (participantsTypeSelector) {
+	switch (aboutServerInfoStruct.participantsTypeSelector) {
 	case oneProcessThreads:
 		pthread_attr_t threadAttr;
 		pthread_attr_init(&threadAttr);
 		pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
-		pthread_create(&t1, &threadAttr, Client, &IPCTypeSelector);
+		pthread_create(&t1, &threadAttr, Client,&(aboutServerInfoStruct));
 		break;
 	case relatedProcess:
 		if ((pidSon = fork()) == 0) {
@@ -173,11 +174,11 @@ int makeThreadProcess(participantsType participantsTypeSelector,char *argv,IPCTy
 /*------------------------------------------------------------------------------------*/
 /*Waiting for something (Server part)
  * */
-int recievingPart(IPCType IPCTypeSelector, int *fileDes, char* buffer_pipe_read, char *buffer_pipe_write, std::string path){
+int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_pipe_read, char *buffer_pipe_write){
 #ifdef DEBUG_MY
 	std::cout << "[INFO]: Starting client if it necessary" << std::endl;
 #endif
-	switch (IPCTypeSelector) {
+	switch (aboutServerInfoStruct.IPCTypeSelector) {
 	case signalIPC:
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before pause. Waiting for signal!\n");
 		for (;;) {
@@ -187,19 +188,19 @@ int recievingPart(IPCType IPCTypeSelector, int *fileDes, char* buffer_pipe_read,
 
 	case pipeIPC:
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before read from pipe!\n");
-		while (read(fileDes[0], buffer_pipe_read, strlen(buffer_pipe_write))!= -1) {
+		while (read(aboutServerInfoStruct.fileDes[0], buffer_pipe_read, strlen(buffer_pipe_write))!= -1) {
 			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Read from pipe!\n");
 		};
-		close(fileDes[0]);
+		close(aboutServerInfoStruct.fileDes[0]);
 		break;
 
 	case fifoIPC:
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before read from fifo!\n");
-		while (read(fileDes[0], buffer_pipe_read, strlen(buffer_pipe_write))!= -1) {
+		while (read(aboutServerInfoStruct.fifoDes, buffer_pipe_read, strlen(buffer_pipe_write))!= -1) {
 					TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Read from fifo!\n");
 		};
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After reading from fifo!\n");
-		unlink(path.c_str());
+		unlink(aboutServerInfoStruct.pathToFifo.c_str());
 		break;
 
 	case messageIPCSend_Block:
@@ -215,45 +216,45 @@ int recievingPart(IPCType IPCTypeSelector, int *fileDes, char* buffer_pipe_read,
 }
 /*------------------------------------------------------------------------------------*/
 
+
+/*------------------------------------------------------------------------------------*/
+void getInfgoAboutServer(AboutServerInfoStruct *aboutServerInfoStruct){
+	aboutServerInfoStruct->pid=getpid();
+	aboutServerInfoStruct->ppid=getppid();
+	aboutServerInfoStruct->tid=pthread_self();
+}
+/*------------------------------------------------------------------------------------*/
+
 /*------------------------------------------------------------------------------------*/
  int main(int argc, char *argv[]) {
 
 
+ 	AboutServerInfoStruct aboutServerInfoStruct;
 
+	parseParametrsMy(argc, argv, &aboutServerInfoStruct); //Parsing input parametrs
+	getInfgoAboutServer(&aboutServerInfoStruct);
 
-	IPCType IPCTypeSelector = signalIPC;
-	participantsType participantsTypeSelector = oneProcessThreads;
-	parseParametrsMy(argc, argv, &IPCTypeSelector, &participantsTypeSelector); //Parsing input parametrs
-
-
-	/*BEGIN: !!!!!!!!!!!!!!!Getting information about server. For output info file!!!!!!!!!!!!!!!*/
-	pid_t pid = getpid();
-	pid_t ppid = getppid();
-
-	pthread_t tid = pthread_self();
 
 	//Pipe
-	int fileDes[2];
 	char buffer_pipe_write[]="This us write in pipe";
 	char buffer_pipe_read[strlen(buffer_pipe_write)];
 
-	//FIFO
-	int fifoDes=0;
-	std::string path = "/tmp/fifo.fifo";
-
-	if(infoToFile(pid, ppid, tid, fileDes, buffer_pipe_write )==-1){
-		goto deInit;
+	preWork(&aboutServerInfoStruct);
+	if(infoToFile(aboutServerInfoStruct, buffer_pipe_write )==-1){
+			//goto deInit;
 	};
 
 
 
-	preWork(IPCTypeSelector, fileDes, path, &fifoDes);
 
-	makeThreadProcess(participantsTypeSelector,argv[0], IPCTypeSelector);
 
-	recievingPart(IPCTypeSelector, fileDes, buffer_pipe_read, buffer_pipe_write, path);
 
-	printf("\n PROCESS PARAM: pid=%i  ppid=%i \n", pid, ppid);
+
+	makeThreadProcess(argv[0], aboutServerInfoStruct);
+
+	recievingPart(aboutServerInfoStruct, buffer_pipe_read,buffer_pipe_write);
+
+	//printf("\n PROCESS PARAM: pid=%i  ppid=%i \n", pid, ppid);
 
 
 
