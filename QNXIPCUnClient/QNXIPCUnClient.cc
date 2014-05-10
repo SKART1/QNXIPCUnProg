@@ -46,19 +46,17 @@ int main(int argc, char *argv[]) {
 
 
 	/*BEGIN: !!!!!!!!!!!!!!!Processing input keys!!!!!!!!!!!!!!!*/
-	IPCType IPCTypeSelector = signalIPC;
-	participantsType participantsTypeSelector = oneProcessThreads;
 
-
+	AboutServerInfoStruct aboutServerInfoStruct;
 	std::string temp="";
-	parseParametrsMy(argc, argv, &IPCTypeSelector, &participantsTypeSelector,&temp);
+	parseParametrsMy(argc, argv, &aboutServerInfoStruct);
 	/*END: !!!!!!!!!!!!!!!Processing input keys!!!!!!!!!!!!!!!*/
 
-	AboutServerInfoStruct aboutServerInfoStructl;
-	readFromFile(temp, &aboutServerInfoStructl);
-	aboutServerInfoStructl.IPCTypeSelector=IPCTypeSelector;
+
+	readFromFile(temp, &aboutServerInfoStruct);
+	//aboutServerInfoStructl.IPCTypeSelector=IPCTypeSelector;
 
 	sleep(2);
-	Client(&aboutServerInfoStructl);
+	Client(&aboutServerInfoStruct);
 	return EXIT_SUCCESS;
 }

@@ -13,7 +13,7 @@
 void *Client(void *arg) {
 	AboutServerInfoStruct aboutServerInfoStruct = *(AboutServerInfoStruct * )arg;
 
-	std::cout<<"In client!"<<std::endl;
+	//std::cout<<"In client!"<<std::endl;
 	//FIFO
 
 	//Output file pointer

@@ -220,7 +220,7 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_pipe
 /*------------------------------------------------------------------------------------*/
 void getInfgoAboutServer(AboutServerInfoStruct *aboutServerInfoStruct){
 	aboutServerInfoStruct->pid=getpid();
-	aboutServerInfoStruct->ppid=getpid();
+	aboutServerInfoStruct->ppid=getppid();
 	aboutServerInfoStruct->tid=pthread_self();
 }
 /*------------------------------------------------------------------------------------*/
@@ -229,8 +229,7 @@ void getInfgoAboutServer(AboutServerInfoStruct *aboutServerInfoStruct){
  int main(int argc, char *argv[]) {
 
 
-std::string temp="";
-	AboutServerInfoStruct aboutServerInfoStruct;
+ 	AboutServerInfoStruct aboutServerInfoStruct;
 
 	parseParametrsMy(argc, argv, &aboutServerInfoStruct); //Parsing input parametrs
 	getInfgoAboutServer(&aboutServerInfoStruct);
