@@ -152,7 +152,7 @@ int makeThreadProcess(participantsType participantsTypeSelector,char *argv,IPCTy
 		pthread_attr_t threadAttr;
 		pthread_attr_init(&threadAttr);
 		pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
-		pthread_create(&t1, &threadAttr, Client,(void *)IPCTypeSelector);
+		pthread_create(&t1, &threadAttr, Client, &IPCTypeSelector);
 		break;
 	case relatedProcess:
 		if ((pidSon = fork()) == 0) {
