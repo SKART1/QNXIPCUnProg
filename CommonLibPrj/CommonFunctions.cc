@@ -15,32 +15,57 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 		return (EXIT_FAILURE);
 	};
 
-	while ((c = getopt(argc, argv, "SPFabcdef")) != -1) {
+	while ((c = getopt(argc, argv, "ABC:DEFG:HIabcdef")) != -1) {
 		switch (c) {
-		case 'S':
+		case 'A':
 			counter1++;
-			std::cout << "S" << std::endl;
 			aboutServerInfoStruct->IPCTypeSelector = signalIPC;
 			break;
-		case 'P':
+		case 'B':
 			counter1++;
-			std::cout << "P" << std::endl;
 			aboutServerInfoStruct->IPCTypeSelector = pipeIPC;
+			break;
+		case 'C':
+			counter1++;
+			aboutServerInfoStruct->IPCTypeSelector = fifoIPC;
+			aboutServerInfoStruct->pathToFifo=optarg;
+			break;
+		case 'D':
+			counter1++;
+			aboutServerInfoStruct->IPCTypeSelector = messageQueuIPC;
+			break;
+		case 'E':
+			counter1++;
+			aboutServerInfoStruct->IPCTypeSelector = sharedMemoryIPC;
 			break;
 		case 'F':
 			counter1++;
-			std::cout << "F" << std::endl;
-			aboutServerInfoStruct->IPCTypeSelector = fifoIPC;
+			aboutServerInfoStruct->IPCTypeSelector = semaphoreIPCUnnamed;
 			break;
-		case 'M':
+		case 'G':
 			counter1++;
-			std::cout << "S" << std::endl;
+			aboutServerInfoStruct->IPCTypeSelector = semaphoreIPCNamed;
+			aboutServerInfoStruct->pathToSemNamedStandart=optarg;
+			break;
+		case 'H':
+			counter1++;
 			aboutServerInfoStruct->IPCTypeSelector = messageIPCSend_Block;
 			break;
-		case 'm':
+		case 'I':
 			counter1++;
-			std::cout << "m" << std::endl;
 			aboutServerInfoStruct->IPCTypeSelector = messageIPCRecieved_Block;
+			break;
+		case 'J':
+			counter1++;
+			aboutServerInfoStruct->IPCTypeSelector = pulseIPCMessage;
+			break;
+		case 'K':
+			counter1++;
+			aboutServerInfoStruct->IPCTypeSelector = pulseIPCSpecial;
+			break;
+		case 'L':
+			counter1++;
+			aboutServerInfoStruct->IPCTypeSelector = pulseIPCFromInterruptHandler;
 			break;
 
 		case 'a':
@@ -88,9 +113,15 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 			return -1;
 		}
 	}
-	if(optind<(argc-1)){
+
+	if(counter2<1 || counter1<1){
+		std::cout<<"[ERROR]: Not enough arguments!"<<std::endl;
+		correctFormatInfo();
+		return -1;
+	};
+
+	if(optind<(argc)){
 		aboutServerInfoStruct->pathToFileWithServerInfo=argv[optind];
-		aboutServerInfoStruct->pathToFifo=argv[optind+1];
 	}
 	else{
 		std::cout<<"[ERROR]: Path for the file not specified!"<<std::endl;
@@ -104,5 +135,5 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 
 
 void correctFormatInfo(){
-	std::cout<<"[ERROR]: Programm usage format: server.out \n -S - signal \n -P - pipe \n -F - fifo \n -m - recievd-blocked messages \n -M - send-blocked messages  \n %FILEPATH_FOR_SERVERINFO_FILE%  %FILEPATH_FOR_FIFO.FIFO_FILE%"<< std::endl;
+	std::cout<<"[ERROR]: Programm usage format: server.out \n -S - signal \n -P - pipe \n -F  %FILEPATH_FOR_FIFO.FIFO_FILE% - fifo \n -m - recievd-blocked messages \n -M - send-blocked messages  \n %FILEPATH_FOR_SERVERINFO_FILE%  "<< std::endl;
 }

@@ -8,6 +8,7 @@
 #ifndef ABOUTSERVERINFOSTRUCT_HPP_
 #define ABOUTSERVERINFOSTRUCT_HPP_
 #include "Headers.hpp"
+#include <semaphore.h>
 
 typedef struct{
 	//Type of IPC
@@ -15,6 +16,7 @@ typedef struct{
 	participantsType participantsTypeSelector;
 
 	//Info about server
+	unsigned int nd;
 	pid_t pid;
 	pid_t ppid;
 	pthread_t tid;
@@ -25,6 +27,23 @@ typedef struct{
 	//FIFO
 	std::string pathToFifo;
 	int fifoDes;
+
+	//SharedMemory
+	//std::string pathToSharedMemory;
+	//int fifoDes;
+
+	//Semaphore
+	sem_t semUnnamedStandart;
+	sem_t semThroughSharedMemory;
+
+	sem_t *semNamed;
+	std::string pathToSemNamedStandart;
+
+
+
+
+	//Messages
+	int chid;
 
 	//Path to file with server info
 	std::string pathToFileWithServerInfo;

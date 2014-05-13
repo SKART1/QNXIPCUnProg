@@ -70,6 +70,7 @@ int inline infoToFile(AboutServerInfoStruct aboutServerInfoStruct , char *buffer
 		return -1;
 	}
 
+	fprintf(filePointer, "ND: %d\n", aboutServerInfoStruct.nd);
 	fprintf(filePointer, "PID: %d\n", aboutServerInfoStruct.pid);
 	fprintf(filePointer, "PPID: %d\n", aboutServerInfoStruct.ppid);
 	fprintf(filePointer, "TID: %d\n", aboutServerInfoStruct.tid);
@@ -80,6 +81,12 @@ int inline infoToFile(AboutServerInfoStruct aboutServerInfoStruct , char *buffer
 
 	//For fifo
 	fprintf(filePointer, "FIFO_PATH: %s\n", aboutServerInfoStruct.pathToFifo.c_str());
+
+
+	//For message
+	fprintf(filePointer, "CHID: %d\n", aboutServerInfoStruct.chid);
+
+
 
 	fclose(filePointer);
 	return 0;
@@ -110,12 +117,14 @@ int inline preWork(AboutServerInfoStruct *aboutServerInfoStruct){
 			return -8;
 		}
 		break;
+
 	case pipeIPC:
 		if (pipe(aboutServerInfoStruct->fileDes) < 0) {
 			printf("[ERROR]: %d creating pipe file. That means: %s\n", errno,strerror(errno));
 			return -9;
 		}
 		break;
+
 	case fifoIPC:
 		unlink(aboutServerInfoStruct->pathToFifo.c_str());
 		if ((mkfifo((aboutServerInfoStruct->pathToFifo).c_str(), S_IRWXU | S_IRWXG | S_IRWXO)) == -1) {
@@ -128,11 +137,31 @@ int inline preWork(AboutServerInfoStruct *aboutServerInfoStruct){
 		}
 
 		break;
-	case messageIPCSend_Block:
 
+	case semaphoreIPCUnnamed:
+		if(sem_init( &aboutServerInfoStruct->semUnnamedStandart, NULL, 0 )== -1){
+			perror("[ERROR]: Unnamed standard semaphore init: ");
+		};
+		if(sem_init( &aboutServerInfoStruct->semThroughSharedMemory, 1, 0 )== -1){
+			perror("[ERROR]: Unnamed shared memory semaphore init: ");
+		};
 		break;
-	case messageIPCRecieved_Block:
 
+	case semaphoreIPCNamed:
+		if(((aboutServerInfoStruct->semNamed)=sem_open(aboutServerInfoStruct->pathToSemNamedStandart.c_str(),O_CREAT | O_EXCL, S_IRWXG | S_IRWXO | S_IRWXU, 0))==SEM_FAILED){
+			perror("[ERROR]: Named semaphore init: ");
+		};
+		break;
+
+	case messageIPCSend_Block:
+	case messageIPCRecieved_Block:
+	case pulseIPCMessage:
+	case pulseIPCSpecial:
+	case pulseIPCFromInterruptHandler:
+		if((aboutServerInfoStruct->chid= ChannelCreate(NULL))==-1){
+			perror("[ERROR]: Channel create");
+			return -12;
+		}
 		break;
 	default:
 		break;
@@ -150,6 +179,7 @@ int makeThreadProcess(char *argv[], AboutServerInfoStruct aboutServerInfoStruct)
 #endif
 	pthread_t t1;
 	int pidSon;
+	std::string independentProcessLocalNameAndParametrs="QNXIPCUnClient";
 
 	switch (aboutServerInfoStruct.participantsTypeSelector) {
 	case oneProcessThreads:
@@ -166,9 +196,10 @@ int makeThreadProcess(char *argv[], AboutServerInfoStruct aboutServerInfoStruct)
 		};
 		break;
 	/*case independentProcessLocal:
-		if (execl("QNXIPCUnClient", argv) == -1) {
-			perror("[ERROR]: Execl");
+		for(int i=0; i<argc; i++){
+			independentProcessLocalNameAndParametrs=independentProcessLocalNameAndParametrs+" "+std::string(argv[i]);
 		}
+		std::cerr<<independentProcessLocalNameAndParametrs<<std::endl;
 		break;*/
 	default:
 		break;
@@ -186,9 +217,12 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 	std::cout << "[INFO]: Starting client if it necessary" << std::endl;
 #endif
 	int len;
-	len=strlen(buffer_write);
+	len=strlen(buffer_read);
 	int ret;
 	ret=0;
+
+	//Messages
+	int rcvid=-1;
 
 	switch (aboutServerInfoStruct.IPCTypeSelector) {
 	case signalIPC:
@@ -199,10 +233,7 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		break;
 
 	case pipeIPC:
-
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before read from pipe!\n");
-
-
 		while (len>0 && (ret=read(aboutServerInfoStruct.fileDes[0], buffer_read,len ))!= 0) {
 			if(ret==-1){
 				if(errno == EINTR){
@@ -248,13 +279,73 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		unlink(aboutServerInfoStruct.pathToFifo.c_str());
 		break;
 
-	case messageIPCSend_Block:
+	case semaphoreIPCUnnamed:
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before unnamed semaphore!\n");
+		sem_wait(aboutServerInfoStruct.semUnnamedStandart);
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In unnamed semaphore!\n");
+		break;
 
+	case semaphoreIPCNamed:
+		if(((aboutServerInfoStruct->semNamed)=sem_open(aboutServerInfoStruct->pathToSemNamedStandart.c_str(),O_CREAT | O_EXCL, S_IRWXG | S_IRWXO | S_IRWXU, 1))==SEM_FAILED){
+			perror("[ERROR]: Named semaphore init: ");
+		};
+		break;
+
+
+
+
+	case messageIPCSend_Block:
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before receive message!\n");
+		if((rcvid =MsgReceive(aboutServerInfoStruct.chid, &buffer_read, len, NULL))<=0){
+			if(rcvid==0){
+				DEBUG_PRINT("INFO", "Pulse! WTF?!");
+				break;
+			}
+			else{
+				perror("[ERROR]: MsgReceive");
+			}
+		};
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After receive message!\n");
+
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before reply message!\n");
+		if(MsgReply(rcvid,EOK,&buffer_write, len)==-1){
+			perror("[ERROR]: MsgReply");
+		};
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before reply message!\n");
 		break;
 
 	case messageIPCRecieved_Block:
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before send message!\n");
+		if(MsgSend(aboutServerInfoStruct.chid,&buffer_write, len,&buffer_read, len )==-1){
+			perror("[ERROR]: MsgSend");
+		};
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After send message!\n");
+		break;
+
+	case pulseIPCMessage:
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before receive pulse!\n");
+		if((rcvid =MsgReceive(aboutServerInfoStruct.chid, &buffer_read, len, NULL))<=0){
+			if(rcvid==0){
+				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After receiving pulse!\n");
+				DEBUG_PRINT("INFO", "Pulse!");
+				break;
+			}
+			else{
+				perror("[ERROR]: MsgReceive");
+			}
+		};
 
 		break;
+
+	case pulseIPCSpecial:
+		char pulseRecieved[5];
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before send message!\n");
+		if(MsgReceivePulse(aboutServerInfoStruct.chid, pulseRecieved, sizeof(pulseRecieved),NULL)){
+				perror("[ERROR]: MsgSend");
+		};
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After send message!\n");
+		break;
+
 	default:
 		break;
 	}
@@ -272,8 +363,6 @@ void getInfgoAboutServer(AboutServerInfoStruct *aboutServerInfoStruct){
 
 /*------------------------------------------------------------------------------------*/
  int main(int argc, char *argv[]) {
-
-
  	AboutServerInfoStruct aboutServerInfoStruct;
 
 	parseParametrsMy(argc, argv, &aboutServerInfoStruct); //Parsing input parametrs

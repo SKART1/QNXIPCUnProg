@@ -25,6 +25,6 @@
 #include <sys/trace.h>
 
 #include <pthread.h>
-
+#include <semaphore.h>
 
 #endif /* QNXIPCUNSERVER_HPP_ */

@@ -11,9 +11,9 @@
 
 
 
-int readFromFile(AboutServerInfoStruct *aboutServerInfoStructl){
+int readFromFile(AboutServerInfoStruct *aboutServerInfoStruct){
 	FILE *filePointer = NULL;
-	filePointer = fopen((aboutServerInfoStructl->pathToFileWithServerInfo).c_str(), "r");
+	filePointer = fopen((aboutServerInfoStruct->pathToFileWithServerInfo).c_str(), "r");
 	if (filePointer == NULL) {
 		printf("[ERROR]: %d can not open file with program information because of: %s\n",	errno, strerror(errno));
 		return -1;
@@ -21,22 +21,29 @@ int readFromFile(AboutServerInfoStruct *aboutServerInfoStructl){
 
 	char buff[100];
 	fscanf(filePointer, "%s", buff);
-	fscanf(filePointer, "%d", &((*aboutServerInfoStructl).pid));
+	fscanf(filePointer, "%d", &((*aboutServerInfoStruct).nd));
 
 	fscanf(filePointer, "%s", buff);
-	fscanf(filePointer, "%d", &((*aboutServerInfoStructl).ppid));
+	fscanf(filePointer, "%d", &((*aboutServerInfoStruct).pid));
 
 	fscanf(filePointer, "%s", buff);
-	fscanf(filePointer, "%d", &((*aboutServerInfoStructl).tid));
+	fscanf(filePointer, "%d", &((*aboutServerInfoStruct).ppid));
 
 	fscanf(filePointer, "%s", buff);
-	fscanf(filePointer, "%d",&((*aboutServerInfoStructl).fileDes[0]));
+	fscanf(filePointer, "%d", &((*aboutServerInfoStruct).tid));
 
 	fscanf(filePointer, "%s", buff);
-	fscanf(filePointer, "%d",&((*aboutServerInfoStructl).fileDes[1]));
+	fscanf(filePointer, "%d",&((*aboutServerInfoStruct).fileDes[0]));
 
 	fscanf(filePointer, "%s", buff);
-	fscanf(filePointer, "%s",(aboutServerInfoStructl->pathToFifo).c_str());
+	fscanf(filePointer, "%d",&((*aboutServerInfoStruct).fileDes[1]));
+
+	fscanf(filePointer, "%s", buff);
+	fscanf(filePointer, "%s",(aboutServerInfoStruct->pathToFifo).c_str());
+
+	fscanf(filePointer, "%s", buff);
+	fscanf(filePointer, "%d", &((*aboutServerInfoStruct).chid));
+
 	return 0;
 }
 

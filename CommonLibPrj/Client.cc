@@ -99,6 +99,23 @@ void *Client(void *arg) {
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After writing in fifo");
 		close(aboutServerInfoStruct.fifoDes);
 		break;
+	case messageIPCSend_Block:
+
+		break;
+	case messageIPCRecieved_Block:
+
+		break;
+	case pulseIPCMessage:
+
+		break;
+	case pulseIPCSpecial:
+
+		break;
+	case pulseIPCFromInterruptHandler:
+
+		break;
+
+
 	default:
 		break;
 	}

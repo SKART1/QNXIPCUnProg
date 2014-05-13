@@ -14,8 +14,19 @@ typedef enum {
 	signalIPC,
 	pipeIPC,
 	fifoIPC,
+
+	messageQueuIPC,
+	sharedMemoryIPC,
+
+	semaphoreIPCUnnamed,
+	semaphoreIPCNamed,
+
+
 	messageIPCSend_Block,
-	messageIPCRecieved_Block
+	messageIPCRecieved_Block,
+	pulseIPCMessage,
+	pulseIPCSpecial,
+	pulseIPCFromInterruptHandler,
 } IPCType;
 
 typedef enum {
