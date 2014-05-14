@@ -142,7 +142,7 @@ int inline preWork(AboutServerInfoStruct *aboutServerInfoStruct){
 		if(sem_init( &aboutServerInfoStruct->semUnnamedStandart, NULL, 0 )== -1){
 			perror("[ERROR]: Unnamed standard semaphore init: ");
 		};
-		if(sem_init( &aboutServerInfoStruct->semThroughSharedMemory, 1, 0 )== -1){
+		if(sem_init( &aboutServerInfoStruct->semUnnamedThroughSharedMemory, 1, 0 )== -1){
 			perror("[ERROR]: Unnamed shared memory semaphore init: ");
 		};
 		break;
@@ -280,19 +280,69 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		break;
 
 	case semaphoreIPCUnnamed:
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before unnamed semaphore!\n");
-		sem_wait(aboutServerInfoStruct.semUnnamedStandart);
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In unnamed semaphore!\n");
+		for(int i=0; i<2; i++){
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before unnamed semaphore!\n");
+			sem_wait(&aboutServerInfoStruct.semUnnamedStandart);
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In unnamed semaphore!\n");
+			for (int i = 0; i < 10000; i++) {
+				for (int j = 0; j < 100; j++) {
+					fake1 = i * j;
+				}
+			}
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before post unnamed semaphore!\n");
+			sem_post(&aboutServerInfoStruct.semUnnamedStandart);
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After post unnamed semaphore!\n");
+			for (int i = 0; i < 10000; i++) {
+				for (int j = 0; j < 100; j++) {
+					fake1 = i * j;
+				}
+			}
+		};
+
+		for(int i=0; i<2; i++){
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before shared memory unnamed semaphore in server!\n");
+			sem_wait(&aboutServerInfoStruct.semUnnamedThroughSharedMemory);
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In shared memory unnamed semaphore in server!\n");
+			for (int i = 0; i < 10000; i++) {
+				for (int j = 0; j < 100; j++) {
+					fake1 = i * j;
+				}
+			}
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before shared memory post unnamed semaphore in server!\n");
+			sem_post(&aboutServerInfoStruct.semUnnamedThroughSharedMemory);
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After shared memory post unnamed semaphore in server!\n");
+			for (int i = 0; i < 10000; i++) {
+				for (int j = 0; j < 100; j++) {
+					fake1 = i * j;
+				}
+			}
+		};
+		sem_destroy(&aboutServerInfoStruct.semUnnamedStandart);
+		sem_destroy(&aboutServerInfoStruct.semUnnamedThroughSharedMemory);
 		break;
 
 	case semaphoreIPCNamed:
-		if(((aboutServerInfoStruct->semNamed)=sem_open(aboutServerInfoStruct->pathToSemNamedStandart.c_str(),O_CREAT | O_EXCL, S_IRWXG | S_IRWXO | S_IRWXU, 1))==SEM_FAILED){
-			perror("[ERROR]: Named semaphore init: ");
+		for(int i=0; i<2; i++){
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before named semaphore in server!\n");
+			sem_wait(aboutServerInfoStruct.semNamed);
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In named semaphore in server!\n");
+			for (int i = 0; i < 10000; i++) {
+				for (int j = 0; j < 100; j++) {
+					fake1 = i * j;
+				}
+			}
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before post named semaphore in server!\n");
+			sem_post(aboutServerInfoStruct.semNamed);
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After post named semaphore in server!\n");
+			for (int i = 0; i < 10000; i++) {
+				for (int j = 0; j < 100; j++) {
+					fake1 = i * j;
+				}
+			}
 		};
+
+		sem_close(aboutServerInfoStruct.semNamed);
 		break;
-
-
-
 
 	case messageIPCSend_Block:
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before receive message!\n");

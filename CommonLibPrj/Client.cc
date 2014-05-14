@@ -10,6 +10,10 @@
 #include "AboutServerInfoStruct.hpp"
 #include "DebugInfoOut.hpp"
 
+volatile int fake100;
+
+
+
 void *Client(void *arg) {
 	AboutServerInfoStruct aboutServerInfoStruct = *(AboutServerInfoStruct * )arg;
 	DEBUG_PRINT("INFO", "In client!");
@@ -57,6 +61,7 @@ void *Client(void *arg) {
 		SignalKill(0, aboutServerInfoStruct.pid, aboutServerInfoStruct.tid, SIGUSR2, NULL, NULL);
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After sending SIG2");
 		break;
+
 	case pipeIPC:
 		len=strlen(buffer_write);
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: Before writing in pipe");
@@ -75,6 +80,7 @@ void *Client(void *arg) {
 		close(aboutServerInfoStruct.fileDes[0]);
 		close(aboutServerInfoStruct.fileDes[1]);
 		break;
+
 	case fifoIPC:
 		std::cout<<aboutServerInfoStruct.pathToFifo.c_str()<<std::endl;
 		if(
@@ -99,6 +105,51 @@ void *Client(void *arg) {
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After writing in fifo");
 		close(aboutServerInfoStruct.fifoDes);
 		break;
+
+	case semaphoreIPCUnnamed:
+		sem_post(&aboutServerInfoStruct.semUnnamedStandart);
+		for(int i=0; i<1; i++){
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before standard unnamed semaphore in client!\n");
+			sem_wait(&aboutServerInfoStruct.semUnnamedStandart);
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In standard unnamed semaphore in client!\n");
+			for (int i = 0; i < 10000; i++) {
+				for (int j = 0; j < 100; j++) {
+					fake100 = i * j;
+				}
+			}
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before standard post unnamed semaphore in client!\n");
+			sem_post(&aboutServerInfoStruct.semUnnamedStandart);
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After standard post unnamed semaphore in client!\n");
+			for (int i = 0; i < 10000; i++) {
+				for (int j = 0; j < 100; j++) {
+					fake100 = i * j;
+				}
+			}
+		};
+
+
+		sem_post(&aboutServerInfoStruct.semUnnamedThroughSharedMemory);
+		for(int i=0; i<1; i++){
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before shared memory unnamed semaphore in client!\n");
+			sem_wait(&aboutServerInfoStruct.semUnnamedThroughSharedMemory);
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In shared memory unnamed semaphore in client!\n");
+			for (int i = 0; i < 10000; i++) {
+				for (int j = 0; j < 100; j++) {
+					fake100 = i * j;
+				}
+			}
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before shared memory post unnamed semaphore in client!\n");
+			sem_post(&aboutServerInfoStruct.semUnnamedThroughSharedMemory);
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After shared memory post unnamed semaphore in client!\n");
+			for (int i = 0; i < 10000; i++) {
+				for (int j = 0; j < 100; j++) {
+					fake100 = i * j;
+				}
+			}
+		};
+		break;
+
+
 	case messageIPCSend_Block:
 
 		break;

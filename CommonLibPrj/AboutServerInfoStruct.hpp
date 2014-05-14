@@ -34,7 +34,7 @@ typedef struct{
 
 	//Semaphore
 	sem_t semUnnamedStandart;
-	sem_t semThroughSharedMemory;
+	sem_t semUnnamedThroughSharedMemory;
 
 	sem_t *semNamed;
 	std::string pathToSemNamedStandart;
