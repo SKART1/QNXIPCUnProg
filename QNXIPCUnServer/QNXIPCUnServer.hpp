@@ -30,4 +30,6 @@
 
 #include <fcntl.h>	   //for shared memory
 #include <sys/mman.h> //for shared memory
+
+#include <sys/netmgr.h> //for node name resolving
 #endif /* QNXIPCUNSERVER_HPP_ */

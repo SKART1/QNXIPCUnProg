@@ -69,7 +69,12 @@ int inline infoToFile(AboutServerInfoStruct aboutServerInfoStruct , char *buffer
 		return -1;
 	}
 
-	fprintf(filePointer, "ND: %d\n", aboutServerInfoStruct.nd);
+	char buff[100];
+	netmgr_ndtostr(ND2S_DIR_SHOW, 0,  buff,100);
+
+	aboutServerInfoStruct.serverNodeName=std::string(buff);
+	std::cout<<"Node name: "<<aboutServerInfoStruct.serverNodeName<<std::endl;
+	fprintf(filePointer, "NodeName: %s\n", aboutServerInfoStruct.serverNodeName.c_str());
 	fprintf(filePointer, "PID: %d\n", aboutServerInfoStruct.pid);
 	fprintf(filePointer, "PPID: %d\n", aboutServerInfoStruct.ppid);
 	fprintf(filePointer, "TID: %d\n", aboutServerInfoStruct.tid);

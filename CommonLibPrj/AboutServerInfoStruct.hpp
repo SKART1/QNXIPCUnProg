@@ -19,6 +19,7 @@ typedef struct{
 
 	//Info about server
 	unsigned int nd;
+	std::string serverNodeName;
 	pid_t pid;
 	pid_t ppid;
 	pthread_t tid;

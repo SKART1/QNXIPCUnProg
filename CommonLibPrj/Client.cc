@@ -18,8 +18,9 @@ void *Client(void *arg) {
 	AboutServerInfoStruct aboutServerInfoStruct = *(AboutServerInfoStruct * )arg;
 	DEBUG_PRINT("INFO", "In client!");
 
-
-
+	std::cout<<"Node name: "<<aboutServerInfoStruct.serverNodeName<<std::endl;
+	aboutServerInfoStruct.nd=netmgr_strtond(aboutServerInfoStruct.serverNodeName.c_str(), NULL);
+	std::cout<<"Its number is: "<<aboutServerInfoStruct.nd<<std::endl;
 
 	//std::cout<<"In client!"<<std::endl;
 	//FIFO
@@ -61,7 +62,7 @@ void *Client(void *arg) {
 		kill(aboutServerInfoStruct.pid, SIGUSR1);
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After sending  SIG1");
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: Before sending SIG2");
-		SignalKill(0, aboutServerInfoStruct.pid, aboutServerInfoStruct.tid, SIGUSR2, NULL, NULL);
+		SignalKill(aboutServerInfoStruct.nd, aboutServerInfoStruct.pid, aboutServerInfoStruct.tid, SIGUSR2, NULL, NULL);
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After sending SIG2");
 		break;
 

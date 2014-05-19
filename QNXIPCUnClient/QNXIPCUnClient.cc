@@ -21,8 +21,9 @@ int readFromFile(AboutServerInfoStruct *aboutServerInfoStruct){
 
 	char buff[100];
 	fscanf(filePointer, "%s", buff);
-	fscanf(filePointer, "%d", &((*aboutServerInfoStruct).nd));
-
+	fscanf(filePointer, "%s", buff);
+	aboutServerInfoStruct->serverNodeName=std::string(buff);
+	std::cout<<"Namee is: " <<(aboutServerInfoStruct->serverNodeName) <<" buff is: "<<buff<<std::endl;
 	fscanf(filePointer, "%s", buff);
 	fscanf(filePointer, "%d", &((*aboutServerInfoStruct).pid));
 
@@ -39,8 +40,8 @@ int readFromFile(AboutServerInfoStruct *aboutServerInfoStruct){
 	fscanf(filePointer, "%d",&((*aboutServerInfoStruct).fileDes[1]));
 
 	fscanf(filePointer, "%s", buff);
-	fscanf(filePointer, "%s",(aboutServerInfoStruct->pathToFifo).c_str());
-
+	fscanf(filePointer, "%s", buff);
+	aboutServerInfoStruct->pathToFifo=std::string(buff);
 	fscanf(filePointer, "%s", buff);
 	fscanf(filePointer, "%d", &((*aboutServerInfoStruct).chid));
 
