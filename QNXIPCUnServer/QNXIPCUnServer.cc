@@ -9,8 +9,7 @@
 
 extern int errno;
 
-#define DEBUG_PRINT_MY
-#define DEBUG_MY
+//#define DEBUG_MY
 
 
 volatile int sig1 = 0;
@@ -135,7 +134,29 @@ int inline preWork(AboutServerInfoStruct *aboutServerInfoStruct){
 			printf("[ERROR]: %d opening fifo file. That means: %s\n", errno,strerror(errno));
 			return -11;
 		}
+		break;
 
+	 case messageQueuIPC:
+		 if((aboutServerInfoStruct->messageQueueDescriptor=mq_open(aboutServerInfoStruct->pathToMessageQueue.c_str(), O_CREAT, 0777, NULL)==-1)){
+			 perror("[ERROR]: Creating message queue: ");
+		 }
+		 break;
+
+	 case sharedMemoryIPC:
+		if((aboutServerInfoStruct->sharedMemoryId = shm_open(aboutServerInfoStruct->pathToSharedMemory.c_str(), O_RDWR | O_CREAT, 0777))==-1){
+			perror("[ERROR]: Shared memory initialization: ");
+			//return -1;
+		}
+		/* Set the memory object's size */
+		if( ftruncate(aboutServerInfoStruct->sharedMemoryId, 2*sizeof(int)) == -1 ) {
+			perror("[ERROR]: Shared memory setting size: ");
+			//return -1;
+		}
+
+		if((aboutServerInfoStruct->sharedMemoryAddrInProcessSpace = mmap(NULL, 2*sizeof(int), PROT_READ|PROT_WRITE, MAP_SHARED, aboutServerInfoStruct->sharedMemoryId, 0 ))==MAP_FAILED){
+			perror("[ERROR]: Maping shared memory: ");
+		}
+		*((int *)aboutServerInfoStruct->sharedMemoryAddrInProcessSpace)=0;
 		break;
 
 	case semaphoreIPCUnnamed:
@@ -190,7 +211,7 @@ int makeThreadProcess(char *argv[], AboutServerInfoStruct aboutServerInfoStruct)
 		break;
 	case relatedProcess:
 		if ((pidSon = fork()) == 0) {
-			if (execv("QNXIPCUnClient", argv) == -1) {
+			if (execv("QNXIPCUnClient_g", argv) == -1) {
 				printf("[ERROR]: %d error running client process. That means: %s\n", errno,	strerror(errno));
 			}
 		};
@@ -223,6 +244,8 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 
 	//Messages
 	int rcvid=-1;
+
+	 int temp=0;
 
 	switch (aboutServerInfoStruct.IPCTypeSelector) {
 	case signalIPC:
@@ -279,10 +302,44 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		unlink(aboutServerInfoStruct.pathToFifo.c_str());
 		break;
 
+
+	 case messageQueuIPC:
+		 TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: Before receiving message in message queue");
+		 if(mq_receive(aboutServerInfoStruct.messageQueueDescriptor, buffer_read, len, NULL)== -1){
+			 perror("[ERROR]: Error receiving message from queue: ");
+		 }
+		 TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After receiving message in message queue");
+		 if(mq_close(aboutServerInfoStruct.messageQueueDescriptor)==-1){
+			 perror("[ERROR]: Closing message queue: ");
+		 }
+		 if(mq_unlink(aboutServerInfoStruct.pathToMessageQueue.c_str())==-1){
+			 perror("[ERROR]: Unlinking message queue: ");
+		 }
+		 break;
+
+	 case sharedMemoryIPC:
+		 TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: Before writing in shared memory");
+		 *(((int *)aboutServerInfoStruct.sharedMemoryAddrInProcessSpace)+1)=1;
+		 TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After writing in shared memory");
+
+
+		 TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: Before reading from shared memory");
+		 temp=*((int *)aboutServerInfoStruct.sharedMemoryAddrInProcessSpace);
+		 TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After reading from shared memory");
+
+		 while(*((int *)aboutServerInfoStruct.sharedMemoryAddrInProcessSpace)!=1);
+		 if(shm_unlink(aboutServerInfoStruct.pathToSharedMemory.c_str())==-1){
+			 perror("[ERROR]: Shared memory unlinking: ");
+		 };
+		 break;
+
+
 	case semaphoreIPCUnnamed:
 		for(int i=0; i<2; i++){
 			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before unnamed semaphore!\n");
-			sem_wait(&aboutServerInfoStruct.semUnnamedStandart);
+			if(sem_wait(&aboutServerInfoStruct.semUnnamedStandart)==-1){
+				 perror("[ERROR]: sem_wait unnamed semaphore standard in server: ");
+			}
 			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In unnamed semaphore!\n");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
@@ -290,7 +347,9 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 				}
 			}
 			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before post unnamed semaphore!\n");
-			sem_post(&aboutServerInfoStruct.semUnnamedStandart);
+			if(sem_post(&aboutServerInfoStruct.semUnnamedStandart)==-1){
+				perror("[ERROR]: sem_post unnamed semaphore  standard in server: ");
+			}
 			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After post unnamed semaphore!\n");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
@@ -301,7 +360,9 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 
 		for(int i=0; i<2; i++){
 			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before shared memory unnamed semaphore in server!\n");
-			sem_wait(&aboutServerInfoStruct.semUnnamedThroughSharedMemory);
+			if(sem_wait(&aboutServerInfoStruct.semUnnamedThroughSharedMemory)==-1){
+				perror("[ERROR]: sem_wait unnamed semaphore shared memory in server: ");
+			}
 			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In shared memory unnamed semaphore in server!\n");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
@@ -309,7 +370,9 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 				}
 			}
 			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before shared memory post unnamed semaphore in server!\n");
-			sem_post(&aboutServerInfoStruct.semUnnamedThroughSharedMemory);
+			if(sem_post(&aboutServerInfoStruct.semUnnamedThroughSharedMemory)==-1){
+				perror("[ERROR]: sem_post unnamed semaphore shared memory in server: ");
+			}
 			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After shared memory post unnamed semaphore in server!\n");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
@@ -324,7 +387,9 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 	case semaphoreIPCNamed:
 		for(int i=0; i<2; i++){
 			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before named semaphore in server!\n");
-			sem_wait(aboutServerInfoStruct.semNamed);
+			if(sem_wait(aboutServerInfoStruct.semNamed)==-1){
+				perror("[ERROR]: sem_wait named semaphore in server: ");
+			}
 			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In named semaphore in server!\n");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
@@ -332,7 +397,9 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 				}
 			}
 			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before post named semaphore in server!\n");
-			sem_post(aboutServerInfoStruct.semNamed);
+			if(sem_post(aboutServerInfoStruct.semNamed)==-1){
+				perror("[ERROR]: sem_post named semaphore in server: ");
+			}
 			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After post named semaphore in server!\n");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
@@ -384,7 +451,6 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 				perror("[ERROR]: MsgReceive");
 			}
 		};
-
 		break;
 
 	case pulseIPCSpecial:

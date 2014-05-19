@@ -27,4 +27,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+
+#include <fcntl.h>	   //for shared memory
+#include <sys/mman.h> //for shared memory
 #endif /* QNXIPCUNSERVER_HPP_ */

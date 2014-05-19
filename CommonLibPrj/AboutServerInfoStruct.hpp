@@ -9,6 +9,8 @@
 #define ABOUTSERVERINFOSTRUCT_HPP_
 #include "Headers.hpp"
 #include <semaphore.h>
+#include <mqueue.h>
+#include <fcntl.h>
 
 typedef struct{
 	//Type of IPC
@@ -29,8 +31,13 @@ typedef struct{
 	int fifoDes;
 
 	//SharedMemory
-	//std::string pathToSharedMemory;
-	//int fifoDes;
+	std::string pathToSharedMemory;
+	int sharedMemoryId;
+	void * sharedMemoryAddrInProcessSpace;
+
+	//Message queue
+	mqd_t messageQueueDescriptor;
+	std::string pathToMessageQueue;
 
 	//Semaphore
 	sem_t semUnnamedStandart;

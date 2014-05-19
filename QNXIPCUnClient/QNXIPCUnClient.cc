@@ -52,7 +52,8 @@ int readFromFile(AboutServerInfoStruct *aboutServerInfoStruct){
 
 
 int main(int argc, char *argv[]) {
-	std::cout << "Welcome to the client!" << std::endl;
+	std::cout << "Welcome to the client! Argc is: " <<argc << std::endl;
+
 
 	AboutServerInfoStruct aboutServerInfoStruct;
 
@@ -63,7 +64,7 @@ int main(int argc, char *argv[]) {
 
 	parseParametrsMy(argc, argv, &aboutServerInfoStruct);
 	/*END: !!!!!!!!!!!!!!!Processing input keys!!!!!!!!!!!!!!!*/
-
+	std::cout << "Welcome to the client2" << std::endl;
 
 
 	readFromFile(&aboutServerInfoStruct);

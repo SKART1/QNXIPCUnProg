@@ -7,6 +7,8 @@
 
 #ifndef CLIENT_HPP_
 #define CLIENT_HPP_
+#include <fcntl.h>	   //for shared memory
+#include <sys/mman.h> //for shared memory
 
 void *Client(void *t);
 

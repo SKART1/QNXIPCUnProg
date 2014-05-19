@@ -10,6 +10,7 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 	int counter1=0;
 	int counter2=0;
 
+
 	if (argc < 3) {
 		correctFormatInfo();
 		return (EXIT_FAILURE);
@@ -33,10 +34,12 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 		case 'D':
 			counter1++;
 			aboutServerInfoStruct->IPCTypeSelector = messageQueuIPC;
+			aboutServerInfoStruct->pathToMessageQueue=optarg;
 			break;
 		case 'E':
 			counter1++;
 			aboutServerInfoStruct->IPCTypeSelector = sharedMemoryIPC;
+			aboutServerInfoStruct->pathToSemNamedStandart=optarg;
 			break;
 		case 'F':
 			counter1++;
