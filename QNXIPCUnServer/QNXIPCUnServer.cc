@@ -63,7 +63,7 @@ int inline infoToFile(AboutServerInfoStruct aboutServerInfoStruct , char *buffer
 #ifdef DEBUG_MY
 	std::cout << "[INFO]: Writing information to info.info" << std::endl;
 #endif
-	filePointer = fopen((aboutServerInfoStruct.pathToFileWithServerInfo).c_str(), "w");
+	filePointer = fopen((aboutServerInfoStruct.pathToFileWithServerInfo), "w");
 	if (filePointer == NULL) {
 		printf("[ERROR]: %d can not create file with program information because of: %s\n",errno, strerror(errno));
 		return -1;
@@ -142,7 +142,7 @@ int inline preWork(AboutServerInfoStruct *aboutServerInfoStruct){
 		break;
 
 	 case messageQueuIPC:
-		 if((aboutServerInfoStruct->messageQueueDescriptor=mq_open(aboutServerInfoStruct->pathToMessageQueue.c_str(), O_CREAT, 0777, NULL)==-1)){
+		 if((aboutServerInfoStruct->messageQueueDescriptor=mq_open(aboutServerInfoStruct->pathToMessageQueue, O_CREAT, 0777, NULL)==-1)){
 			 perror("[ERROR]: Creating message queue: ");
 		 }
 		 break;
@@ -174,7 +174,7 @@ int inline preWork(AboutServerInfoStruct *aboutServerInfoStruct){
 		break;
 
 	case semaphoreIPCNamed:
-		if(((aboutServerInfoStruct->semNamed)=sem_open(aboutServerInfoStruct->pathToSemNamedStandart.c_str(),O_CREAT | O_EXCL, S_IRWXG | S_IRWXO | S_IRWXU, 0))==SEM_FAILED){
+		if(((aboutServerInfoStruct->semNamed)=sem_open(aboutServerInfoStruct->pathToSemNamedStandart,O_CREAT | O_EXCL, S_IRWXG | S_IRWXO | S_IRWXU, 0))==SEM_FAILED){
 			perror("[ERROR]: Named semaphore init: ");
 		};
 		break;
@@ -337,7 +337,7 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		 if(mq_close(aboutServerInfoStruct.messageQueueDescriptor)==-1){
 			 perror("[ERROR]: Closing message queue: ");
 		 }
-		 if(mq_unlink(aboutServerInfoStruct.pathToMessageQueue.c_str())==-1){
+		 if(mq_unlink(aboutServerInfoStruct.pathToMessageQueue)==-1){
 			 perror("[ERROR]: Unlinking message queue: ");
 		 }
 		 break;

@@ -98,7 +98,7 @@ void *Client(void *arg) {
 				 if(mq_close(aboutServerInfoStruct.messageQueueDescriptor)==-1){
 					 perror("[ERROR]: Closing message queue: ");
 				 }
-				 if(mq_unlink(aboutServerInfoStruct.pathToMessageQueue.c_str())==-1){
+				 if(mq_unlink(aboutServerInfoStruct.pathToMessageQueue)==-1){
 					 perror("[ERROR]: Unlinking message queue: ");
 				 }
 		break;

@@ -13,7 +13,7 @@
 
 int readFromFile(AboutServerInfoStruct *aboutServerInfoStruct){
 	FILE *filePointer = NULL;
-	filePointer = fopen((aboutServerInfoStruct->pathToFileWithServerInfo).c_str(), "r");
+	filePointer = fopen((aboutServerInfoStruct->pathToFileWithServerInfo), "r");
 	if (filePointer == NULL) {
 		printf("[ERROR]: %d can not open file with program information because of: %s\n",	errno, strerror(errno));
 		return -1;

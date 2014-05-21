@@ -34,12 +34,12 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 		case 'D':
 			counter1++;
 			aboutServerInfoStruct->IPCTypeSelector = messageQueuIPC;
-			aboutServerInfoStruct->pathToMessageQueue=optarg;
+			strcpy(aboutServerInfoStruct->pathToMessageQueue,optarg);
 			break;
 		case 'E':
 			counter1++;
 			aboutServerInfoStruct->IPCTypeSelector = sharedMemoryIPC;
-			aboutServerInfoStruct->pathToSemNamedStandart=optarg;
+			strcpy(aboutServerInfoStruct->pathToSemNamedStandart,optarg);
 			break;
 		case 'F':
 			counter1++;
@@ -48,7 +48,7 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 		case 'G':
 			counter1++;
 			aboutServerInfoStruct->IPCTypeSelector = semaphoreIPCNamed;
-			aboutServerInfoStruct->pathToSemNamedStandart=optarg;
+			strcpy(aboutServerInfoStruct->pathToSemNamedStandart,optarg);
 			break;
 		case 'H':
 			counter1++;
@@ -124,7 +124,7 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 	};
 
 	if(optind<(argc)){
-		aboutServerInfoStruct->pathToFileWithServerInfo=argv[optind];
+		strcpy(aboutServerInfoStruct->pathToFileWithServerInfo,argv[optind]);
 	}
 	else{
 		std::cout<<"[ERROR]: Path for the file not specified!"<<std::endl;

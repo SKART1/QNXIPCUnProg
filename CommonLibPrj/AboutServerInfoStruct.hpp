@@ -38,14 +38,14 @@ typedef struct{
 
 	//Message queue
 	mqd_t messageQueueDescriptor;
-	std::string pathToMessageQueue;
+	char pathToMessageQueue[150];
 
 	//Semaphore
 	sem_t semUnnamedStandart;
 	sem_t semUnnamedThroughSharedMemory;
 
 	sem_t *semNamed;
-	std::string pathToSemNamedStandart;
+	char pathToSemNamedStandart[150];
 
 
 
@@ -54,7 +54,7 @@ typedef struct{
 	int chid;
 
 	//Path to file with server info
-	std::string pathToFileWithServerInfo;
+	char pathToFileWithServerInfo[150];
 
 } AboutServerInfoStruct;
 
