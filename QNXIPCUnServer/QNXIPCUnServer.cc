@@ -242,27 +242,34 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 #ifdef DEBUG_MY
 	std::cout << "[INFO]: Starting client if it necessary" << std::endl;
 #endif
+	char *startBuf=buffer_read;
 	int len;
-	len=strlen(buffer_read);
+	len=strlen(buffer_write);
 	int ret;
 	ret=0;
 
 	//Messages
 	int rcvid=-1;
-
+	std::string temp2;
 	 int temp=0;
 
 	switch (aboutServerInfoStruct.IPCTypeSelector) {
 	case signalIPC:
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before pause. Waiting for signal!\n");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before pause. Waiting for signal!");
 		for (;;) {
 			pause();
 		}
 		break;
 
 	case pipeIPC:
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before read from pipe!\n");
+		std::cout<<"Test test test: "<<len<<std::endl<<std::flush;
+		std::cout<<"test"<<std::endl;
+		std::cout<<"Len: "<<len<<std::endl<<std::flush;
+		printf("Len : %i\n", len);
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1,"[INFO]: Before read from pipe!");
+		printf("Len : %i\n", len);
 		while (len>0 && (ret=read(aboutServerInfoStruct.fileDes[0], buffer_read,len ))!= 0) {
+			printf("Len : %i\n", len);
 			if(ret==-1){
 				if(errno == EINTR){
 					continue;
@@ -271,19 +278,32 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 				break;
 			}
 			if(ret!=0){
+				char buffer[20];
+				char *intStr=itoa(ret,buffer,10);
+				std::string temp="[INFO]: Read from pipe!"+std::string(intStr);
 				DEBUG_PRINT("INFO",buffer_read);
-				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Read from pipe!\n");
+				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1,temp.c_str());
 				len-=ret;
 				buffer_read+=ret;
 			}
 		};
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After read from pipe!\n");
+		char buffer[20];
+		char *intStr;
+		intStr=	itoa(ret,buffer,10);
+
+		temp2="[INFO]: After read from pipe!"+std::string(intStr);
+
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1,temp2.c_str());
+
+		//TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1,"[INFO]: After read from pipe!");
 		close(aboutServerInfoStruct.fileDes[0]);
 		close(aboutServerInfoStruct.fileDes[1]);
+		std::cout<<"[INFO]: Message in pipe is: "<<std::string(startBuf)<<".Strlen: "<<strlen(startBuf)<<". Len is: "<<len<<std::endl;
+		printf("%s\n", startBuf);
 		break;
 
 	case fifoIPC:
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before read from fifo!\n");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before read from fifo!");
 		while (len>0 && (ret=read(aboutServerInfoStruct.fifoDes, buffer_read,len ))!= 0) {
 			if(ret==-1){
 				if(errno == EINTR){
@@ -297,12 +317,12 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 			}
 			if(ret!=0){
 				DEBUG_PRINT("INFO",buffer_read);
-				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Read from fifo!\n");
+				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Read from fifo!");
 				len-=ret;
 				buffer_read+=ret;
 			}
 		};
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After reading from fifo!\n");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After reading from fifo!");
 		close(aboutServerInfoStruct.fifoDes);
 		unlink(aboutServerInfoStruct.pathToFifo.c_str());
 		break;
@@ -341,21 +361,21 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 
 	case semaphoreIPCUnnamed:
 		for(int i=0; i<2; i++){
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before unnamed semaphore!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before unnamed semaphore!");
 			if(sem_wait(&aboutServerInfoStruct.semUnnamedStandart)==-1){
 				 perror("[ERROR]: sem_wait unnamed semaphore standard in server: ");
 			}
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In unnamed semaphore!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: In unnamed semaphore!");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
 					fake1 = i * j;
 				}
 			}
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before post unnamed semaphore!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before post unnamed semaphore!");
 			if(sem_post(&aboutServerInfoStruct.semUnnamedStandart)==-1){
 				perror("[ERROR]: sem_post unnamed semaphore  standard in server: ");
 			}
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After post unnamed semaphore!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After post unnamed semaphore!");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
 					fake1 = i * j;
@@ -364,21 +384,21 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		};
 
 		for(int i=0; i<2; i++){
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before shared memory unnamed semaphore in server!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before shared memory unnamed semaphore in server!");
 			if(sem_wait(&aboutServerInfoStruct.semUnnamedThroughSharedMemory)==-1){
 				perror("[ERROR]: sem_wait unnamed semaphore shared memory in server: ");
 			}
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In shared memory unnamed semaphore in server!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: In shared memory unnamed semaphore in server!");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
 					fake1 = i * j;
 				}
 			}
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before shared memory post unnamed semaphore in server!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before shared memory post unnamed semaphore in server!");
 			if(sem_post(&aboutServerInfoStruct.semUnnamedThroughSharedMemory)==-1){
 				perror("[ERROR]: sem_post unnamed semaphore shared memory in server: ");
 			}
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After shared memory post unnamed semaphore in server!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After shared memory post unnamed semaphore in server!");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
 					fake1 = i * j;
@@ -391,21 +411,21 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 
 	case semaphoreIPCNamed:
 		for(int i=0; i<2; i++){
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before named semaphore in server!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before named semaphore in server!");
 			if(sem_wait(aboutServerInfoStruct.semNamed)==-1){
 				perror("[ERROR]: sem_wait named semaphore in server: ");
 			}
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In named semaphore in server!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: In named semaphore in server!");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
 					fake1 = i * j;
 				}
 			}
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before post named semaphore in server!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before post named semaphore in server!");
 			if(sem_post(aboutServerInfoStruct.semNamed)==-1){
 				perror("[ERROR]: sem_post named semaphore in server: ");
 			}
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After post named semaphore in server!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After post named semaphore in server!");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
 					fake1 = i * j;
@@ -417,7 +437,7 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		break;
 
 	case messageIPCSend_Block:
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before receive message!\n");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before receive message!");
 		if((rcvid =MsgReceive(aboutServerInfoStruct.chid, &buffer_read, len, NULL))<=0){
 			if(rcvid==0){
 				DEBUG_PRINT("INFO", "Pulse! WTF?!");
@@ -427,28 +447,28 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 				perror("[ERROR]: MsgReceive");
 			}
 		};
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After receive message!\n");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After receive message!");
 
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before reply message!\n");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before reply message!");
 		if(MsgReply(rcvid,EOK,&buffer_write, len)==-1){
 			perror("[ERROR]: MsgReply");
 		};
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before reply message!\n");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before reply message!");
 		break;
 
 	case messageIPCRecieved_Block:
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before send message!\n");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before send message!");
 		if(MsgSend(aboutServerInfoStruct.chid,&buffer_write, len,&buffer_read, len )==-1){
 			perror("[ERROR]: MsgSend");
 		};
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After send message!\n");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After send message!");
 		break;
 
 	case pulseIPCMessage:
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before receive pulse!\n");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before receive pulse!");
 		if((rcvid =MsgReceive(aboutServerInfoStruct.chid, &buffer_read, len, NULL))<=0){
 			if(rcvid==0){
-				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After receiving pulse!\n");
+				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After receiving pulse!");
 				DEBUG_PRINT("INFO", "Pulse!");
 				break;
 			}
@@ -460,11 +480,11 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 
 	case pulseIPCSpecial:
 		char pulseRecieved[5];
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before send message!\n");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before send message!");
 		if(MsgReceivePulse(aboutServerInfoStruct.chid, pulseRecieved, sizeof(pulseRecieved),NULL)){
 				perror("[ERROR]: MsgSend");
 		};
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After send message!\n");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After send message!");
 		break;
 
 	default:

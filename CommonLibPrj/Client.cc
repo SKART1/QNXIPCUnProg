@@ -81,6 +81,7 @@ void *Client(void *arg) {
 			buffPointer=buffPointer+written;
 		}
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After writing in pipe");
+		sleep(1); //Let the pipe be readed
 		close(aboutServerInfoStruct.fileDes[0]);
 		close(aboutServerInfoStruct.fileDes[1]);
 		break;
