@@ -29,7 +29,7 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 		case 'C':
 			counter1++;
 			aboutServerInfoStruct->IPCTypeSelector = fifoIPC;
-			aboutServerInfoStruct->pathToFifo=optarg;
+			strcpy(aboutServerInfoStruct->pathToFifo,optarg);
 			break;
 		case 'D':
 			counter1++;

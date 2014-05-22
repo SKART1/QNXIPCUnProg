@@ -19,7 +19,7 @@ void *Client(void *arg) {
 	DEBUG_PRINT("INFO", "In client!");
 
 	std::cout<<"Node name: "<<aboutServerInfoStruct.serverNodeName<<std::endl;
-	aboutServerInfoStruct.nd=netmgr_strtond(aboutServerInfoStruct.serverNodeName.c_str(), NULL);
+	aboutServerInfoStruct.nd=netmgr_strtond(aboutServerInfoStruct.serverNodeName, NULL);
 	std::cout<<"Its number is: "<<aboutServerInfoStruct.nd<<std::endl;
 
 	//std::cout<<"In client!"<<std::endl;
@@ -86,6 +86,31 @@ void *Client(void *arg) {
 		close(aboutServerInfoStruct.fileDes[1]);
 		break;
 
+	case fifoIPC:
+		std::cout<<aboutServerInfoStruct.pathToFifo<<std::endl;
+		if(
+				(aboutServerInfoStruct.fifoDes=open(aboutServerInfoStruct.pathToFifo, O_RDWR))<=0
+				){
+				perror("[ERROR]: Opening fifo file");
+				break;
+		}
+		len=strlen(buffer_write);
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: Before writing in fifo");
+		while(len!=0 && ((written=write(aboutServerInfoStruct.fifoDes,buffer_write, len)) !=0)){
+			if(written==-1){
+				if(errno==EINTR){
+					continue;
+				}
+				perror("[ERROR]: Write in fifo");
+				break;
+			}
+			len-=written;
+			buffPointer=buffPointer+written;
+		}
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After writing in fifo");
+		close(aboutServerInfoStruct.fifoDes);
+		break;
+
 	case messageQueuIPC:
 		/* if((aboutServerInfoStruct->messageQueueDescriptor=mq_open(aboutServerInfoStruct->pathToMessageQueue.c_str(), O_CREAT, 0777, NULL)==-1)){
 					 perror("[ERROR]: Creating message queue: ");
@@ -124,31 +149,6 @@ void *Client(void *arg) {
 			 perror("[ERROR]: Unmapping shared memory: ");
 		 };
 		 break;
-
-	case fifoIPC:
-		std::cout<<aboutServerInfoStruct.pathToFifo.c_str()<<std::endl;
-		if(
-				(aboutServerInfoStruct.fifoDes=open((aboutServerInfoStruct.pathToFifo).c_str(), O_RDWR))<=0
-				){
-				perror("[ERROR]: Opening fifo file");
-				break;
-		}
-		len=strlen(buffer_write);
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: Before writing in fifo");
-		while(len!=0 && ((written=write(aboutServerInfoStruct.fifoDes,buffer_write, len)) !=0)){
-			if(written==-1){
-				if(errno==EINTR){
-					continue;
-				}
-				perror("[ERROR]: Write in fifo");
-				break;
-			}
-			len-=written;
-			buffPointer=buffPointer+written;
-		}
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After writing in fifo");
-		close(aboutServerInfoStruct.fifoDes);
-		break;
 
 	case semaphoreIPCUnnamed:
 		sem_post(&aboutServerInfoStruct.semUnnamedStandart);

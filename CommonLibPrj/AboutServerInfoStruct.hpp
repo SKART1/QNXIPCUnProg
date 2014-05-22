@@ -19,7 +19,7 @@ typedef struct{
 
 	//Info about server
 	unsigned int nd;
-	std::string serverNodeName;
+	char serverNodeName[150];
 	pid_t pid;
 	pid_t ppid;
 	pthread_t tid;
@@ -28,7 +28,7 @@ typedef struct{
 	int fileDes[2];
 
 	//FIFO
-	std::string pathToFifo;
+	char pathToFifo[150];
 	int fifoDes;
 
 	//SharedMemory

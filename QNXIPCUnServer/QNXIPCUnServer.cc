@@ -68,13 +68,7 @@ int inline infoToFile(AboutServerInfoStruct aboutServerInfoStruct , char *buffer
 		printf("[ERROR]: %d can not create file with program information because of: %s\n",errno, strerror(errno));
 		return -1;
 	}
-
-	char buff[100];
-	netmgr_ndtostr(ND2S_DIR_SHOW, 0,  buff,100);
-
-	aboutServerInfoStruct.serverNodeName=std::string(buff);
-	std::cout<<"Node name: "<<aboutServerInfoStruct.serverNodeName<<std::endl;
-	fprintf(filePointer, "NodeName: %s\n", aboutServerInfoStruct.serverNodeName.c_str());
+	fprintf(filePointer, "NodeName: %s\n", aboutServerInfoStruct.serverNodeName);
 	fprintf(filePointer, "PID: %d\n", aboutServerInfoStruct.pid);
 	fprintf(filePointer, "PPID: %d\n", aboutServerInfoStruct.ppid);
 	fprintf(filePointer, "TID: %d\n", aboutServerInfoStruct.tid);
@@ -84,7 +78,7 @@ int inline infoToFile(AboutServerInfoStruct aboutServerInfoStruct , char *buffer
 	fprintf(filePointer, "PIPE[1]: %d\n", aboutServerInfoStruct.fileDes[1]);
 
 	//For fifo
-	fprintf(filePointer, "FIFO_PATH: %s\n", aboutServerInfoStruct.pathToFifo.c_str());
+	fprintf(filePointer, "FIFO_PATH: %s\n", aboutServerInfoStruct.pathToFifo);
 
 
 	//For message
@@ -130,12 +124,12 @@ int inline preWork(AboutServerInfoStruct *aboutServerInfoStruct){
 		break;
 
 	case fifoIPC:
-		unlink(aboutServerInfoStruct->pathToFifo.c_str());
-		if ((mkfifo((aboutServerInfoStruct->pathToFifo).c_str(), S_IRWXU | S_IRWXG | S_IRWXO)) == -1) {
+		unlink(aboutServerInfoStruct->pathToFifo);
+		if ((mkfifo((aboutServerInfoStruct->pathToFifo), S_IRWXU | S_IRWXG | S_IRWXO)) == -1) {
 			printf("[ERROR]: %d creating fifo file. That means: %s\n", errno,strerror(errno));
 			return -10;
 		}
-		if(((aboutServerInfoStruct->fifoDes)=open((aboutServerInfoStruct->pathToFifo).c_str(), O_RDWR))<=0){
+		if(((aboutServerInfoStruct->fifoDes)=open(aboutServerInfoStruct->pathToFifo, O_RDWR))<=0){
 			printf("[ERROR]: %d opening fifo file. That means: %s\n", errno,strerror(errno));
 			return -11;
 		}
@@ -242,7 +236,6 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 #ifdef DEBUG_MY
 	std::cout << "[INFO]: Starting client if it necessary" << std::endl;
 #endif
-	char *startBuf=buffer_read;
 	int len;
 	len=strlen(buffer_write);
 	int ret;
@@ -262,14 +255,8 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		break;
 
 	case pipeIPC:
-		std::cout<<"Test test test: "<<len<<std::endl<<std::flush;
-		std::cout<<"test"<<std::endl;
-		std::cout<<"Len: "<<len<<std::endl<<std::flush;
-		printf("Len : %i\n", len);
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1,"[INFO]: Before read from pipe!");
-		printf("Len : %i\n", len);
 		while (len>0 && (ret=read(aboutServerInfoStruct.fileDes[0], buffer_read,len ))!= 0) {
-			printf("Len : %i\n", len);
 			if(ret==-1){
 				if(errno == EINTR){
 					continue;
@@ -277,29 +264,16 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 				DEBUG_PRINT("ERROR","Internal read error");
 				break;
 			}
-			if(ret!=0){
-				char buffer[20];
-				char *intStr=itoa(ret,buffer,10);
-				std::string temp="[INFO]: Read from pipe!"+std::string(intStr);
+			else if(ret!=0){
 				DEBUG_PRINT("INFO",buffer_read);
-				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1,temp.c_str());
+				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1, "[INFO]: Read from pipe!");
 				len-=ret;
 				buffer_read+=ret;
 			}
 		};
-		char buffer[20];
-		char *intStr;
-		intStr=	itoa(ret,buffer,10);
-
-		temp2="[INFO]: After read from pipe!"+std::string(intStr);
-
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1,temp2.c_str());
-
-		//TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1,"[INFO]: After read from pipe!");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1,"[INFO]: After read from pipe!");
 		close(aboutServerInfoStruct.fileDes[0]);
 		close(aboutServerInfoStruct.fileDes[1]);
-		std::cout<<"[INFO]: Message in pipe is: "<<std::string(startBuf)<<".Strlen: "<<strlen(startBuf)<<". Len is: "<<len<<std::endl;
-		printf("%s\n", startBuf);
 		break;
 
 	case fifoIPC:
@@ -309,13 +283,13 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 				if(errno == EINTR){
 					continue;
 				}
-				if(errno == EAGAIN){
+				else if(errno == EAGAIN){
 					continue;
 				}
 				DEBUG_PRINT("ERROR","Internal read error");
 				break;
 			}
-			if(ret!=0){
+			else if(ret!=0){
 				DEBUG_PRINT("INFO",buffer_read);
 				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Read from fifo!");
 				len-=ret;
@@ -324,7 +298,7 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		};
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After reading from fifo!");
 		close(aboutServerInfoStruct.fifoDes);
-		unlink(aboutServerInfoStruct.pathToFifo.c_str());
+		unlink(aboutServerInfoStruct.pathToFifo);
 		break;
 
 
@@ -499,6 +473,7 @@ void getInfgoAboutServer(AboutServerInfoStruct *aboutServerInfoStruct){
 	aboutServerInfoStruct->pid=getpid();
 	aboutServerInfoStruct->ppid=getppid();
 	aboutServerInfoStruct->tid=pthread_self();
+	netmgr_ndtostr(ND2S_DIR_SHOW, 0,  aboutServerInfoStruct->serverNodeName,100);
 }
 /*------------------------------------------------------------------------------------*/
 
