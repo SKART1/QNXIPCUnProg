@@ -236,6 +236,7 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 #ifdef DEBUG_MY
 	std::cout << "[INFO]: Starting client if it necessary" << std::endl;
 #endif
+	char *buffer_readPointer=buffer_read;
 	int len;
 	len=strlen(buffer_write);
 	int ret;
@@ -244,7 +245,7 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 	//Messages
 	int rcvid=-1;
 	std::string temp2;
-	 int temp=0;
+	int temp=0;
 
 	switch (aboutServerInfoStruct.IPCTypeSelector) {
 	case signalIPC:
@@ -266,19 +267,19 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 			}
 			else if(ret!=0){
 				DEBUG_PRINT("INFO",buffer_read);
-				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1, "[INFO]: Read from pipe!");
+				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1, "[INFO]: Before read from pipe!");
 				len-=ret;
 				buffer_read+=ret;
 			}
 		};
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1,"[INFO]: After read from pipe!");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1,"[INFO]: Read from pipe is maiden!");
 		close(aboutServerInfoStruct.fileDes[0]);
 		close(aboutServerInfoStruct.fileDes[1]);
 		break;
 
 	case fifoIPC:
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before read from fifo!");
-		while (len>0 && (ret=read(aboutServerInfoStruct.fifoDes, buffer_read,len ))!= 0) {
+		while (len>0 && (ret=read(aboutServerInfoStruct.fifoDes, buffer_readPointer,len ))!= 0) {
 			if(ret==-1){
 				if(errno == EINTR){
 					continue;
@@ -291,12 +292,12 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 			}
 			else if(ret!=0){
 				DEBUG_PRINT("INFO",buffer_read);
-				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Read from fifo!");
+				TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Read from fifo is maiden!");
 				len-=ret;
-				buffer_read+=ret;
+				buffer_readPointer+=ret;
 			}
 		};
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After reading from fifo!");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Reading from fifo ended!");
 		close(aboutServerInfoStruct.fifoDes);
 		unlink(aboutServerInfoStruct.pathToFifo);
 		break;
@@ -464,6 +465,7 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 	default:
 		break;
 	}
+	return 0;
 }
 /*------------------------------------------------------------------------------------*/
 

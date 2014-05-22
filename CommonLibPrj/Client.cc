@@ -88,11 +88,9 @@ void *Client(void *arg) {
 
 	case fifoIPC:
 		std::cout<<aboutServerInfoStruct.pathToFifo<<std::endl;
-		if(
-				(aboutServerInfoStruct.fifoDes=open(aboutServerInfoStruct.pathToFifo, O_RDWR))<=0
-				){
-				perror("[ERROR]: Opening fifo file");
-				break;
+		if((aboutServerInfoStruct.fifoDes=open(aboutServerInfoStruct.pathToFifo, O_RDWR))<=0){
+			perror("[ERROR]: Opening fifo file");
+			break;
 		}
 		len=strlen(buffer_write);
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: Before writing in fifo");

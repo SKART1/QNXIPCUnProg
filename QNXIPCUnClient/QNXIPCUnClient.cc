@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 
 
 
-	sleep(2);
+	usleep(100);
 	Client(&aboutServerInfoStruct);
 	return EXIT_SUCCESS;
 }
