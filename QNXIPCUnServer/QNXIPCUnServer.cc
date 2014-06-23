@@ -21,7 +21,6 @@ volatile int fake2 = 0;
 
 
 
-
 /*------------------------------------------------------------------------------------*/
 static void sigusr1_hndlr(int signo) {
 	TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1, "[INFO]: Entering SIGUSR1");
@@ -54,6 +53,8 @@ static void sigusr2_hndlr(int signo) {
 	TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 4, "[INFO]: Exiting SIGUSR2");
 }
 /*------------------------------------------------------------------------------------*/
+
+
 
 /*------------------------------------------------------------------------------------*/
 int inline infoToFile(AboutServerInfoStruct aboutServerInfoStruct , char *buffer_pipe_write ){
@@ -136,13 +137,13 @@ int inline preWork(AboutServerInfoStruct *aboutServerInfoStruct){
 		break;
 
 	 case messageQueuIPC:
-		 if((aboutServerInfoStruct->messageQueueDescriptor=mq_open(aboutServerInfoStruct->pathToMessageQueue, O_CREAT, 0777, NULL)==-1)){
+		 if((aboutServerInfoStruct->messageQueueDescriptor=mq_open(aboutServerInfoStruct->pathToMessageQueue, O_RDONLY| O_CREAT, 0777, NULL))==-1){
 			 perror("[ERROR]: Creating message queue: ");
 		 }
 		 break;
 
 	 case sharedMemoryIPC:
-		if((aboutServerInfoStruct->sharedMemoryId = shm_open(aboutServerInfoStruct->pathToSharedMemory.c_str(), O_RDWR | O_CREAT, 0777))==-1){
+		if((aboutServerInfoStruct->sharedMemoryId = shm_open(aboutServerInfoStruct->pathToSharedMemory, O_RDWR | O_CREAT, 0777))==-1){
 			perror("[ERROR]: Shared memory initialization: ");
 			//return -1;
 		}
@@ -173,10 +174,15 @@ int inline preWork(AboutServerInfoStruct *aboutServerInfoStruct){
 		};
 		break;
 
-	case messageIPCSend_Block:
 	case messageIPCRecieved_Block:
+	case messageIPCSend_Block:
 	case pulseIPCMessage:
 	case pulseIPCSpecial:
+		if((aboutServerInfoStruct->chid= ChannelCreate(NULL))==-1){
+			perror("[ERROR]: Channel create");
+			return -12;
+		}
+		break;
 	case pulseIPCFromInterruptHandler:
 		if((aboutServerInfoStruct->chid= ChannelCreate(NULL))==-1){
 			perror("[ERROR]: Channel create");
@@ -206,7 +212,10 @@ int makeThreadProcess(char *argv[], AboutServerInfoStruct aboutServerInfoStruct)
 		pthread_attr_t threadAttr;
 		pthread_attr_init(&threadAttr);
 		pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
-		pthread_create(&t1, &threadAttr, Client,&(aboutServerInfoStruct));
+		AboutServerInfoStruct *aboutServerInfoStructTemp;
+		aboutServerInfoStructTemp=new AboutServerInfoStruct;
+		*aboutServerInfoStructTemp=aboutServerInfoStruct;
+		pthread_create(&t1, &threadAttr, Client,(void *)aboutServerInfoStructTemp);
 		break;
 	case relatedProcess:
 		if ((pidSon = fork()) == 0) {
@@ -246,6 +255,8 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 	int rcvid=-1;
 	std::string temp2;
 	int temp=0;
+
+	char pulseRecieved[100];
 
 	switch (aboutServerInfoStruct.IPCTypeSelector) {
 	case signalIPC:
@@ -304,17 +315,31 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 
 
 	 case messageQueuIPC:
+
+		 struct mq_attr obuf;
+		 char *msgPointer;
+		 msgPointer=NULL;
+		 /* get max message size */
+		 if (!mq_getattr(aboutServerInfoStruct.messageQueueDescriptor,&obuf)){
+			 msgPointer = (char* )calloc(1,obuf.mq_msgsize);
+		 }
+		 else{
+			perror("[ERROR]: Get message queue attributes: ");
+		 }
+
 		 TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: Before receiving message in message queue");
-		 if(mq_receive(aboutServerInfoStruct.messageQueueDescriptor, buffer_read, len, NULL)== -1){
-			 perror("[ERROR]: Error receiving message from queue: ");
+		 if(mq_receive(aboutServerInfoStruct.messageQueueDescriptor, msgPointer, obuf.mq_msgsize, NULL)== -1){
+			perror("[ERROR]: Error receiving message from queue: ");
 		 }
 		 TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After receiving message in message queue");
+
 		 if(mq_close(aboutServerInfoStruct.messageQueueDescriptor)==-1){
-			 perror("[ERROR]: Closing message queue: ");
+			perror("[ERROR]: Closing message queue: ");
 		 }
 		 if(mq_unlink(aboutServerInfoStruct.pathToMessageQueue)==-1){
-			 perror("[ERROR]: Unlinking message queue: ");
+			perror("[ERROR]: Unlinking message queue: ");
 		 }
+		 free(msgPointer);
 		 break;
 
 	 case sharedMemoryIPC:
@@ -328,7 +353,7 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		 TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After reading from shared memory");
 
 		 while(*((int *)aboutServerInfoStruct.sharedMemoryAddrInProcessSpace)!=1);
-		 if(shm_unlink(aboutServerInfoStruct.pathToSharedMemory.c_str())==-1){
+		 if(shm_unlink(aboutServerInfoStruct.pathToSharedMemory)==-1){
 			 perror("[ERROR]: Shared memory unlinking: ");
 		 };
 		 break;
@@ -411,7 +436,8 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		sem_close(aboutServerInfoStruct.semNamed);
 		break;
 
-	case messageIPCSend_Block:
+
+	case messageIPCRecieved_Block:
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before receive message!");
 		if((rcvid =MsgReceive(aboutServerInfoStruct.chid, &buffer_read, len, NULL))<=0){
 			if(rcvid==0){
@@ -428,16 +454,21 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		if(MsgReply(rcvid,EOK,&buffer_write, len)==-1){
 			perror("[ERROR]: MsgReply");
 		};
-		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before reply message!");
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After reply message!");
 		break;
 
-	case messageIPCRecieved_Block:
+
+
+	case messageIPCSend_Block:
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before send message!");
 		if(MsgSend(aboutServerInfoStruct.chid,&buffer_write, len,&buffer_read, len )==-1){
 			perror("[ERROR]: MsgSend");
 		};
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After send message!");
 		break;
+
+		break;
+
 
 	case pulseIPCMessage:
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before receive pulse!");
@@ -454,7 +485,6 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		break;
 
 	case pulseIPCSpecial:
-		char pulseRecieved[5];
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before send message!");
 		if(MsgReceivePulse(aboutServerInfoStruct.chid, pulseRecieved, sizeof(pulseRecieved),NULL)){
 				perror("[ERROR]: MsgSend");
@@ -462,6 +492,14 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After send message!");
 		break;
 
+	case pulseIPCFromInterruptHandler:
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: Before receiving pulse!");
+		if(MsgReceivePulse(aboutServerInfoStruct.chid, pulseRecieved, sizeof(pulseRecieved),NULL)){
+				std::cout<<errno<<std::endl;
+				perror("[ERROR]: MsgSend");
+		};
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3,"[INFO]: After receiving pulse!");
+		break;
 	default:
 		break;
 	}
@@ -471,23 +509,28 @@ int recievingPart(AboutServerInfoStruct aboutServerInfoStruct, char* buffer_read
 
 
 /*------------------------------------------------------------------------------------*/
-void getInfgoAboutServer(AboutServerInfoStruct *aboutServerInfoStruct){
+int getInfgoAboutServer(AboutServerInfoStruct *aboutServerInfoStruct){
 	aboutServerInfoStruct->pid=getpid();
 	aboutServerInfoStruct->ppid=getppid();
 	aboutServerInfoStruct->tid=pthread_self();
-	netmgr_ndtostr(ND2S_DIR_SHOW, 0,  aboutServerInfoStruct->serverNodeName,100);
+	if(netmgr_ndtostr(ND2S_DIR_SHOW, 0,  aboutServerInfoStruct->serverNodeName,100)==-1){
+		perror("[ERROR]: Node name to node number");
+		return -1;
+	};
+	return 0;
 }
 /*------------------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------------------*/
  int main(int argc, char *argv[]) {
  	AboutServerInfoStruct aboutServerInfoStruct;
+ 	strcpy(aboutServerInfoStruct.pathToFifo,"test");
 
 	parseParametrsMy(argc, argv, &aboutServerInfoStruct); //Parsing input parametrs
 	getInfgoAboutServer(&aboutServerInfoStruct);
 
 
-	//Pipe
+	//Buffer
 	char buffer_pipe_write[]="This us write in pipe";
 	char buffer_pipe_read[strlen(buffer_pipe_write)];
 

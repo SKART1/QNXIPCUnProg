@@ -12,10 +12,25 @@
 
 volatile int fake100;
 
+int end=0;
+struct sigevent event;
+
+
+/*------------------------------------------------------------------------------------*/
+const struct sigevent * intHandler(void *arg, int id){
+	TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1, "[INFO]: Entering interrupt handler handler");
+	end=1;
+	//std::cerr<<"Entering handler"<<std::endl;
+	TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 1, "[INFO]: Exiting interrupt handler handler");
+	return &event;
+}
+/*------------------------------------------------------------------------------------*/
+
 
 
 void *Client(void *arg) {
 	AboutServerInfoStruct aboutServerInfoStruct = *(AboutServerInfoStruct * )arg;
+	delete (AboutServerInfoStruct *) arg;
 	DEBUG_PRINT("INFO", "In client!");
 
 	std::cout<<"Node name: "<<aboutServerInfoStruct.serverNodeName<<std::endl;
@@ -49,12 +64,15 @@ void *Client(void *arg) {
 	//fprintf(filePointer, "BufferLength: %d\n", strlen(buffer_pipe_write));
 	//char buffer_pipe_write[] = "This us write in pipe";
 	char buffer_write[]="This us write in pipe\0";
+	char buffer_read[]="This us write in pipe\0";
 	char *buffPointer=&(buffer_write[0]);
 	int len;
 	int written;
-
-	 int temp;
-	 temp=0;
+	len=strlen(buffer_write);
+	int temp;
+	temp=0;
+	int coid=-1;
+	int rcvid=-1;
 
 	switch ((aboutServerInfoStruct.IPCTypeSelector)) {
 	case signalIPC:
@@ -92,7 +110,6 @@ void *Client(void *arg) {
 			perror("[ERROR]: Opening fifo file");
 			break;
 		}
-		len=strlen(buffer_write);
 		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: Before writing in fifo");
 		while(len!=0 && ((written=write(aboutServerInfoStruct.fifoDes,buffer_write, len)) !=0)){
 			if(written==-1){
@@ -110,24 +127,21 @@ void *Client(void *arg) {
 		break;
 
 	case messageQueuIPC:
-		/* if((aboutServerInfoStruct->messageQueueDescriptor=mq_open(aboutServerInfoStruct->pathToMessageQueue.c_str(), O_CREAT, 0777, NULL)==-1)){
-					 perror("[ERROR]: Creating message queue: ");
-		 }*/
+		 if((aboutServerInfoStruct.messageQueueDescriptor=mq_open(aboutServerInfoStruct.pathToMessageQueue,  O_WRONLY  | O_CREAT, 0777, NULL))==-1){
+			 perror("[ERROR]: Creating message queue: ");
+		 }
 		 TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: Before sending message in message queue");
-		/* if(mq_send(aboutServerInfoStruct.messageQueueDescriptor, buffer_read, len, NULL)== -1){
+		 if(mq_send(aboutServerInfoStruct.messageQueueDescriptor, buffer_write, len, NULL)== -1){
 			 perror("[ERROR]: Error receiving message from queue: ");
-		 }*/
+		 }
 		 TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After sending message in message queue");
-				 if(mq_close(aboutServerInfoStruct.messageQueueDescriptor)==-1){
-					 perror("[ERROR]: Closing message queue: ");
-				 }
-				 if(mq_unlink(aboutServerInfoStruct.pathToMessageQueue)==-1){
-					 perror("[ERROR]: Unlinking message queue: ");
-				 }
-		break;
+		 if(mq_close(aboutServerInfoStruct.messageQueueDescriptor)==-1){
+			 perror("[ERROR]: Closing message queue: ");
+		 }
+		 break;
 
 	 case sharedMemoryIPC:
-		 if((aboutServerInfoStruct.sharedMemoryId = shm_open(aboutServerInfoStruct.pathToSharedMemory.c_str(), O_RDWR, NULL))==-1){
+		 if((aboutServerInfoStruct.sharedMemoryId = shm_open(aboutServerInfoStruct.pathToSharedMemory, O_RDWR, NULL))==-1){
 			 perror("[ERROR]: Shared memory open in client: ");
 		 }
 		 if((aboutServerInfoStruct.sharedMemoryAddrInProcessSpace = mmap(NULL, 2*sizeof(int), PROT_READ|PROT_WRITE, MAP_SHARED, aboutServerInfoStruct.sharedMemoryId, 0 ))==MAP_FAILED){
@@ -141,8 +155,6 @@ void *Client(void *arg) {
 		 *((int *)(aboutServerInfoStruct.sharedMemoryAddrInProcessSpace)+1)=1;
 		 TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 3, "[INFO]: After writing in shared memory");
 
-
-
 		 if(munmap(aboutServerInfoStruct.sharedMemoryAddrInProcessSpace ,2*sizeof(int))==-1){
 			 perror("[ERROR]: Unmapping shared memory: ");
 		 };
@@ -151,17 +163,17 @@ void *Client(void *arg) {
 	case semaphoreIPCUnnamed:
 		sem_post(&aboutServerInfoStruct.semUnnamedStandart);
 		for(int i=0; i<1; i++){
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before standard unnamed semaphore in client!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before standard unnamed semaphore in client!");
 			sem_wait(&aboutServerInfoStruct.semUnnamedStandart);
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In standard unnamed semaphore in client!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In standard unnamed semaphore in client!");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
 					fake100 = i * j;
 				}
 			}
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before standard post unnamed semaphore in client!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before standard post unnamed semaphore in client!");
 			sem_post(&aboutServerInfoStruct.semUnnamedStandart);
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After standard post unnamed semaphore in client!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After standard post unnamed semaphore in client!");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
 					fake100 = i * j;
@@ -172,17 +184,17 @@ void *Client(void *arg) {
 
 		sem_post(&aboutServerInfoStruct.semUnnamedThroughSharedMemory);
 		for(int i=0; i<1; i++){
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before shared memory unnamed semaphore in client!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before shared memory unnamed semaphore in client!");
 			sem_wait(&aboutServerInfoStruct.semUnnamedThroughSharedMemory);
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In shared memory unnamed semaphore in client!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: In shared memory unnamed semaphore in client!");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
 					fake100 = i * j;
 				}
 			}
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before shared memory post unnamed semaphore in client!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before shared memory post unnamed semaphore in client!");
 			sem_post(&aboutServerInfoStruct.semUnnamedThroughSharedMemory);
-			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After shared memory post unnamed semaphore in client!\n");
+			TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After shared memory post unnamed semaphore in client!");
 			for (int i = 0; i < 10000; i++) {
 				for (int j = 0; j < 100; j++) {
 					fake100 = i * j;
@@ -191,21 +203,72 @@ void *Client(void *arg) {
 		};
 		break;
 
+	case messageIPCRecieved_Block:
+		if((coid=ConnectAttach(aboutServerInfoStruct.nd,aboutServerInfoStruct.pid,aboutServerInfoStruct.chid,NULL,NULL))==-1){
+			perror("[ERROR]: ConenctAttach");
+			return NULL;
+		}
+		sleep(1);
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before sending message from client");
+		if(MsgSend(coid, buffer_write, len,buffer_read, len)==-1){
+			perror("[ERROR]: Message send");
+			return NULL;
+		}
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After sending message from client");
+		break;
 
 	case messageIPCSend_Block:
-
+		if((coid=ConnectAttach(aboutServerInfoStruct.nd,aboutServerInfoStruct.pid,aboutServerInfoStruct.chid,NULL,NULL))==-1){
+			perror("[ERROR]: ConenctAttach");
+			return NULL;
+		}
+		sleep(1);
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before sending message from client");
+		if((rcvid=MsgReceive(coid, buffer_read, len, NULL))==-1){
+			perror("[ERROR]: Message send");
+			return NULL;
+		}
+		if(MsgReply(rcvid, NULL, buffer_write, len)==-1){
+			perror("[ERROR]: Message reply");
+			return NULL;
+		}
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After sending message from client");
 		break;
-	case messageIPCRecieved_Block:
 
-		break;
 	case pulseIPCMessage:
-
-		break;
 	case pulseIPCSpecial:
-
+		if((coid=ConnectAttach(aboutServerInfoStruct.nd,aboutServerInfoStruct.pid,aboutServerInfoStruct.chid,NULL,NULL))==-1){
+			perror("[ERROR]: ConenctAttach");
+			return NULL;
+		}
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: Before sending pulse from client");
+		if(MsgSendPulse (coid, -1, NULL, NULL)==-1){
+			perror("[ERROR]: Send pulse");
+			return NULL;
+		};
+		TraceEvent(_NTO_TRACE_INSERTUSRSTREVENT, 100,"[INFO]: After sending pulse from client");
 		break;
 	case pulseIPCFromInterruptHandler:
+		if((aboutServerInfoStruct.coid=ConnectAttach(aboutServerInfoStruct.nd, aboutServerInfoStruct.pid ,aboutServerInfoStruct.chid, NULL, NULL))==-1){
+			perror("[ERROR]: Connect attach");
+			return NULL;
+		}
 
+		SIGEV_PULSE_INIT( &event, aboutServerInfoStruct.coid, -1 , NULL, NULL);
+		if( ThreadCtl(_NTO_TCTL_IO, 0)==-1){
+			perror("[ERROR]: setuid");
+			return NULL;
+		};
+
+		if((aboutServerInfoStruct.intDescr= InterruptAttach( 1,intHandler, NULL, 0, 0| _NTO_INTR_FLAGS_TRK_MSK))==-1){
+			perror("[ERROR]: InterruptAttach");
+			return NULL;
+		};
+
+		while(end!=1);
+		//InterruptWait(0,NULL);
+		ConnectDetach(aboutServerInfoStruct.coid);
+		InterruptDetach(aboutServerInfoStruct.intDescr);
 		break;
 
 

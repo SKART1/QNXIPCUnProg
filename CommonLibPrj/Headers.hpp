@@ -21,9 +21,9 @@ typedef enum {
 	semaphoreIPCUnnamed,
 	semaphoreIPCNamed,
 
-
-	messageIPCSend_Block,
 	messageIPCRecieved_Block,
+	messageIPCSend_Block,
+
 	pulseIPCMessage,
 	pulseIPCSpecial,
 	pulseIPCFromInterruptHandler,

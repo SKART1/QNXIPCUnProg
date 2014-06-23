@@ -31,14 +31,14 @@ typedef struct{
 	char pathToFifo[150];
 	int fifoDes;
 
-	//SharedMemory
-	std::string pathToSharedMemory;
-	int sharedMemoryId;
-	void * sharedMemoryAddrInProcessSpace;
-
 	//Message queue
 	mqd_t messageQueueDescriptor;
 	char pathToMessageQueue[150];
+
+	//SharedMemory
+	char pathToSharedMemory[150];
+	int sharedMemoryId;
+	void * sharedMemoryAddrInProcessSpace;
 
 	//Semaphore
 	sem_t semUnnamedStandart;
@@ -55,7 +55,10 @@ typedef struct{
 
 	//Path to file with server info
 	char pathToFileWithServerInfo[150];
+	int intDescr;
 
+	//For pulse from interrupt
+	int coid;
 } AboutServerInfoStruct;
 
 

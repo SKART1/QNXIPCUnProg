@@ -16,7 +16,7 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 		return (EXIT_FAILURE);
 	};
 
-	while ((c = getopt(argc, argv, "ABC:DEFG:HIabcdef")) != -1) {
+	while ((c = getopt(argc, argv, "ABC:D:E:FG:HIJKLabcdef")) != -1) {
 		switch (c) {
 		case 'A':
 			counter1++;
@@ -39,7 +39,7 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 		case 'E':
 			counter1++;
 			aboutServerInfoStruct->IPCTypeSelector = sharedMemoryIPC;
-			strcpy(aboutServerInfoStruct->pathToSemNamedStandart,optarg);
+			strcpy(aboutServerInfoStruct->pathToSharedMemory,optarg);
 			break;
 		case 'F':
 			counter1++;
@@ -52,11 +52,11 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 			break;
 		case 'H':
 			counter1++;
-			aboutServerInfoStruct->IPCTypeSelector = messageIPCSend_Block;
+			aboutServerInfoStruct->IPCTypeSelector = messageIPCRecieved_Block;
 			break;
 		case 'I':
 			counter1++;
-			aboutServerInfoStruct->IPCTypeSelector = messageIPCRecieved_Block;
+			aboutServerInfoStruct->IPCTypeSelector = messageIPCSend_Block;
 			break;
 		case 'J':
 			counter1++;
@@ -90,16 +90,6 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 			counter2++;
 			std::cout << "d" << std::endl;
 			aboutServerInfoStruct->participantsTypeSelector = independentProcessNetwork;
-			break;
-		case 'e':
-			counter2++;
-			std	::cout << "e" << std::endl;
-			aboutServerInfoStruct->participantsTypeSelector = independentThreadsLocal;
-			break;
-		case 'f':
-			counter2++;
-			std	::cout << "f" << std::endl;
-			aboutServerInfoStruct->participantsTypeSelector = independentThreadsNetwork;
 			break;
 		case '?':
 			std::cout << "[ERROR]: Unrecognized option!" << std::endl;
@@ -138,5 +128,5 @@ int parseParametrsMy(int argc, char *argv[], AboutServerInfoStruct *aboutServerI
 
 
 void correctFormatInfo(){
-	std::cout<<"[ERROR]: Programm usage format: server.out \n -S - signal \n -P - pipe \n -F  %FILEPATH_FOR_FIFO.FIFO_FILE% - fifo \n -m - recievd-blocked messages \n -M - send-blocked messages  \n %FILEPATH_FOR_SERVERINFO_FILE%  "<< std::endl;
+	std::cout<<"[ERROR]: Program usage format: server.out \n -S - signal \n -P - pipe \n -F  %FILEPATH_FOR_FIFO.FIFO_FILE% - fifo \n -m - recievd-blocked messages \n -M - send-blocked messages  \n %FILEPATH_FOR_SERVERINFO_FILE%  "<< std::endl;
 }

@@ -33,13 +33,17 @@ int readFromFile(AboutServerInfoStruct *aboutServerInfoStruct){
 	fscanf(filePointer, "%d", &((*aboutServerInfoStruct).tid));
 
 	fscanf(filePointer, "%s", buff);
-	fscanf(filePointer, "%d",&((*aboutServerInfoStruct).fileDes[0]));
+	fscanf(filePointer, "%d\n\t",&((*aboutServerInfoStruct).fileDes[0]));
 
 	fscanf(filePointer, "%s", buff);
-	fscanf(filePointer, "%d",&((*aboutServerInfoStruct).fileDes[1]));
+	fscanf(filePointer, "%d\n\t",&((*aboutServerInfoStruct).fileDes[1]));
 
-	fscanf(filePointer, "%s", buff);
-	fscanf(filePointer, "%s", &(aboutServerInfoStruct->pathToFifo));
+
+
+	if(fscanf(filePointer, "FIFO_PATH: %s\n",  &(aboutServerInfoStruct->pathToFifo))==0){
+		fgets (buff,100, filePointer);
+	};
+
 
 	fscanf(filePointer, "%s", buff);
 	fscanf(filePointer, "%d", &((*aboutServerInfoStruct).chid));
@@ -55,24 +59,24 @@ int main(int argc, char *argv[]) {
 	std::cout << "Welcome to the client! Argc is: " <<argc << std::endl;
 
 
-	AboutServerInfoStruct aboutServerInfoStruct;
+	AboutServerInfoStruct *aboutServerInfoStruct=new AboutServerInfoStruct;
 
 
 
 
 
 
-	parseParametrsMy(argc, argv, &aboutServerInfoStruct);
+	parseParametrsMy(argc, argv, aboutServerInfoStruct);
 	/*END: !!!!!!!!!!!!!!!Processing input keys!!!!!!!!!!!!!!!*/
 	std::cout << "Welcome to the client2" << std::endl;
 
 
-	readFromFile(&aboutServerInfoStruct);
+	readFromFile(aboutServerInfoStruct);
 	//aboutServerInfoStructl.IPCTypeSelector=IPCTypeSelector;
 
 
 
-	usleep(100);
-	Client(&aboutServerInfoStruct);
+	usleep(300000);
+	Client(aboutServerInfoStruct);
 	return EXIT_SUCCESS;
 }
